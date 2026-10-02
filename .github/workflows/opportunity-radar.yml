@@ -37,16 +37,28 @@ jobs:
           NINEROUTER_MODEL: ${{ secrets.NINEROUTER_MODEL }}
         run: python opportunity_radar.py
 
-      - name: Report AI router mode
+      - name: Verify AI router connectivity
+        env:
+          AI_ROUTER_BASE_URL: ${{ secrets.AI_ROUTER_BASE_URL }}
+          AI_ROUTER_API_KEY: ${{ secrets.AI_ROUTER_API_KEY }}
+          NINEROUTER_URL: ${{ secrets.NINEROUTER_URL }}
+          NINEROUTER_KEY: ${{ secrets.NINEROUTER_KEY }}
         run: |
           if [ -n "${AI_ROUTER_BASE_URL:-}" ] || [ -n "${NINEROUTER_URL:-}" ]; then
-            echo "AI router configured; enrichment will be attempted."
+            python - <<'PY'
+          import ai_router
+          models = ai_router.models()
+          print(f"AI router reachable; models exposed: {len(models)}")
+          if not models:
+              raise SystemExit("AI router is reachable but exposes no models")
+          free = [m.get("id") for m in models if isinstance(m, dict) and isinstance(m.get("id"), str) and m["id"].split("/", 1)[0] in {"oc", "kr", "if", "qwen", "vertex"}]
+          print("Free-capable models detected:", len(free))
+          if free:
+              print("Example free model:", free[0])
+          PY
           else
             echo "AI router not configured; deterministic radar mode."
           fi
-        env:
-          AI_ROUTER_BASE_URL: ${{ secrets.AI_ROUTER_BASE_URL }}
-          NINEROUTER_URL: ${{ secrets.NINEROUTER_URL }}
 
       - name: Package revenue experiments
         run: python opportunity_packager.py
