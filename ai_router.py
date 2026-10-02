@@ -37,6 +37,7 @@ def model():
     return (
         os.getenv("AI_ROUTER_MODEL")
         or os.getenv("9ROUTER_MODEL")
+        or os.getenv("NINEROUTER_MODEL")
         or "kr/claude-sonnet-4.5"
     )
 
