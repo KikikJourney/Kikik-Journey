@@ -34,7 +34,10 @@ jobs:
           AI_ROUTER_MODEL: ${{ secrets.AI_ROUTER_MODEL }}
           NINEROUTER_URL: ${{ secrets.NINEROUTER_URL }}
           NINEROUTER_KEY: ${{ secrets.NINEROUTER_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           NINEROUTER_MODEL: ${{ secrets.NINEROUTER_MODEL }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          OPENROUTER_MODEL: ${{ secrets.OPENROUTER_MODEL }}
         run: python opportunity_radar.py
 
       - name: Verify AI router connectivity
@@ -44,7 +47,7 @@ jobs:
           NINEROUTER_URL: ${{ secrets.NINEROUTER_URL }}
           NINEROUTER_KEY: ${{ secrets.NINEROUTER_KEY }}
         run: |
-          if [ -n "${AI_ROUTER_BASE_URL:-}" ] || [ -n "${NINEROUTER_URL:-}" ]; then
+          if [ -n "${AI_ROUTER_BASE_URL:-}" ] || [ -n "${NINEROUTER_URL:-}" ] || [ -n "${OPENROUTER_API_KEY:-}" ]; then
             python - <<'PY'
           import ai_router
           models = ai_router.models()
@@ -57,7 +60,7 @@ jobs:
               print("Example free model:", free[0])
           PY
           else
-            echo "AI router not configured; deterministic radar mode."
+            echo "AI provider not configured; deterministic radar mode."
           fi
 
       - name: Package revenue experiments
