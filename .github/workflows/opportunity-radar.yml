@@ -1,28 +1,39 @@
 name: AI Opportunity Radar
+
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
   schedule:
     - cron: "17 */6 * * *"
+
 permissions:
-  contents: write
+  contents: read
+
 jobs:
   radar:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: {python-version: "3.12"}
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
       - name: Run radar
-        env: {GITHUB_TOKEN: ${{ github.token }}}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: python opportunity_radar.py
+
       - name: Validate
         run: |
           python -m json.tool opportunity_report.json >/dev/null
           python -m py_compile opportunity_radar.py
-      - name: Commit report
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add opportunity_report.json
-          git diff --cached --quiet || git commit -m "chore: refresh opportunity radar"
-          git push
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: opportunity-report
+          path: opportunity_report.json
