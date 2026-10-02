@@ -7,14 +7,10 @@ from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
-import ai_router
-
 API = "https://api.github.com"
 USER_AGENT = "KikikJourney-AI-Opportunity-Radar/1.3"
 TOKEN = os.getenv("GITHUB_TOKEN")
 LOOKBACK_DAYS = 45
-AI_ENRICH_LIMIT = 7
-
 QUERIES = [
     "topic:artificial-intelligence pushed:>2026-08-18 stars:>30",
     "topic:llm pushed:>2026-08-18 stars:>30",
@@ -160,69 +156,6 @@ def build_candidate(repo, readme, issues):
         ],
     }
 
-def enrich_with_ai(candidates):
-    """Optionally enrich top candidates through 9Router; never blocks deterministic radar."""
-    if not ai_router.configured():
-        return {
-            "status": "not_configured",
-            "model": None,
-            "enriched_count": 0,
-            "items": [],
-        }
-
-    items = []
-    failures = []
-    for candidate in candidates[:AI_ENRICH_LIMIT]:
-        prompt = {
-            "repository": candidate["full_name"],
-            "description": candidate.get("description"),
-            "score": candidate["score"],
-            "offer": candidate["monetizable_offer"],
-            "validation_action": candidate["validation_action"],
-            "evidence": candidate["evidence"],
-        }
-        messages = [
-            {
-                "role": "system",
-                "content": (
-                    "You are a commercial opportunity analyst. Enrich evidence; do not invent demand, "
-                    "customers, revenue, or facts. Return ONLY valid JSON with keys: likely_buyer, "
-                    "painful_workflow, paid_offer, validation_hypothesis, next_action, confidence. "
-                    "Keep each string concise. confidence must be one of: low, medium, high."
-                ),
-            },
-            {
-                "role": "user",
-                "content": json.dumps(prompt, ensure_ascii=False),
-            },
-        ]
-        try:
-            raw = ai_router.chat(messages, temperature=0.1, timeout=45)
-            parsed = json.loads(raw)
-            required = {
-                "likely_buyer", "painful_workflow", "paid_offer",
-                "validation_hypothesis", "next_action", "confidence",
-            }
-            if not required.issubset(parsed):
-                raise ValueError("AI response missing required keys")
-            parsed["repository"] = candidate["full_name"]
-            items.append(parsed)
-        except Exception as exc:
-            failures.append({
-                "repository": candidate["full_name"],
-                "error": type(exc).__name__,
-            })
-
-    status = "enriched" if items else "configured_but_unavailable"
-    return {
-        "status": status,
-        "model": os.getenv("AI_ROUTER_MODEL") or os.getenv("9ROUTER_MODEL") or "default",
-        "enriched_count": len(items),
-        "failed_count": len(failures),
-        "items": items,
-        "failures": failures,
-    }
-
 def main():
     repos = {}
     failures = []
@@ -250,17 +183,14 @@ def main():
 
     candidates.sort(key=lambda item: item["score"], reverse=True)
     top = candidates[:20]
-    ai_enrichment = enrich_with_ai(top)
-
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "method": "GitHub metadata + README + recent issue evidence + deterministic monetization heuristics",
+        "method": "GitHub metadata + README + recent issue evidence + deterministic monetization heuristics; no external AI model",
         "lookback_days": LOOKBACK_DAYS,
         "warning": "Prioritization and validation hypotheses only; not proof of demand or revenue.",
         "search_failures": failures,
         "candidate_count": len(candidates),
         "candidates": top,
-        "ai_enrichment": ai_enrichment,
         "next_action": "Validate the top candidates with a concrete offer before building a larger product.",
     }
     with open("opportunity_report.json", "w", encoding="utf-8") as handle:
@@ -269,10 +199,6 @@ def main():
     print(json.dumps({
         "candidates": len(candidates),
         "search_failures": len(failures),
-        "ai_enrichment": {
-            "status": ai_enrichment["status"],
-            "enriched_count": ai_enrichment["enriched_count"],
-        },
         "top": [
             {
                 "repo": item["full_name"],
