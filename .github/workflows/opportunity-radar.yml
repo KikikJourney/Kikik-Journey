@@ -29,39 +29,7 @@ jobs:
       - name: Run radar
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          AI_ROUTER_BASE_URL: ${{ secrets.AI_ROUTER_BASE_URL }}
-          AI_ROUTER_API_KEY: ${{ secrets.AI_ROUTER_API_KEY }}
-          AI_ROUTER_MODEL: ${{ secrets.AI_ROUTER_MODEL }}
-          NINEROUTER_URL: ${{ secrets.NINEROUTER_URL }}
-          NINEROUTER_KEY: ${{ secrets.NINEROUTER_KEY }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          NINEROUTER_MODEL: ${{ secrets.NINEROUTER_MODEL }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          OPENROUTER_MODEL: ${{ secrets.OPENROUTER_MODEL }}
         run: python opportunity_radar.py
-
-      - name: Verify AI router connectivity
-        env:
-          AI_ROUTER_BASE_URL: ${{ secrets.AI_ROUTER_BASE_URL }}
-          AI_ROUTER_API_KEY: ${{ secrets.AI_ROUTER_API_KEY }}
-          NINEROUTER_URL: ${{ secrets.NINEROUTER_URL }}
-          NINEROUTER_KEY: ${{ secrets.NINEROUTER_KEY }}
-        run: |
-          if [ -n "${AI_ROUTER_BASE_URL:-}" ] || [ -n "${NINEROUTER_URL:-}" ] || [ -n "${OPENROUTER_API_KEY:-}" ]; then
-            python - <<'PY'
-          import ai_router
-          models = ai_router.models()
-          print(f"AI router reachable; models exposed: {len(models)}")
-          if not models:
-              raise SystemExit("AI router is reachable but exposes no models")
-          free = [m.get("id") for m in models if isinstance(m, dict) and isinstance(m.get("id"), str) and m["id"].split("/", 1)[0] in {"oc", "kr", "if", "qwen", "vertex"}]
-          print("Free-capable models detected:", len(free))
-          if free:
-              print("Example free model:", free[0])
-          PY
-          else
-            echo "AI provider not configured; deterministic radar mode."
-          fi
 
       - name: Package revenue experiments
         run: python opportunity_packager.py
