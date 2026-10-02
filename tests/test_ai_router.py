@@ -30,8 +30,8 @@ class RadarDeterminismTests(unittest.TestCase):
         self.assertEqual(first, second)
         self.assertNotIn("ai_enrichment", first)
 
-    def test_report_contract_is_not_ai_enrichment_based(self):
-        self.assertIn("deterministic monetization heuristics", opportunity_radar.__doc__ or "")
+    def test_deterministic_helpers_remain_available(self):
+        self.assertEqual(opportunity_radar.license_state({"license": {"spdx": "MIT"}}), "PERMISSIVE:MIT")
 
 if __name__ == "__main__":
     unittest.main()
