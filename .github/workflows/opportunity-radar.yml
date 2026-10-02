@@ -25,6 +25,12 @@ jobs:
       - name: Run radar
         env:
           GITHUB_TOKEN: ${{ github.token }}
+          AI_ROUTER_BASE_URL: ${{ secrets.AI_ROUTER_BASE_URL }}
+          AI_ROUTER_API_KEY: ${{ secrets.AI_ROUTER_API_KEY }}
+          AI_ROUTER_MODEL: ${{ secrets.AI_ROUTER_MODEL }}
+          NINEROUTER_URL: ${{ secrets.NINEROUTER_URL }}
+          NINEROUTER_KEY: ${{ secrets.NINEROUTER_KEY }}
+          NINEROUTER_MODEL: ${{ secrets.NINEROUTER_MODEL }}
         run: python opportunity_radar.py
 
       - name: Package revenue experiments
