@@ -1,8 +1,7 @@
 """Minimal OpenAI-compatible client for optional 9Router integration.
 
-The application remains fully functional without 9Router. Set AI_ROUTER_BASE_URL
-(or 9ROUTER_BASE_URL) to an OpenAI-compatible /v1 endpoint when a running
-9Router instance is available.
+The application remains fully functional without 9Router. The router can be
+configured with either NINEROUTER_* (9Router-native) or AI_ROUTER_* variables.
 """
 import json
 import os
@@ -10,36 +9,67 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 
+def _raw_base_url():
+    return (
+        os.getenv("AI_ROUTER_BASE_URL")
+        or os.getenv("9ROUTER_BASE_URL")
+        or os.getenv("NINEROUTER_URL")
+    )
+
+
 def base_url():
-    value = os.getenv("AI_ROUTER_BASE_URL") or os.getenv("9ROUTER_BASE_URL")
+    value = _raw_base_url()
     if not value:
         return None
-    return value.rstrip("/") + "/chat/completions"
+    value = value.rstrip("/")
+    if value.endswith("/chat/completions"):
+        return value
+    if value.endswith("/v1"):
+        return value + "/chat/completions"
+    return value + "/v1/chat/completions"
 
 
 def configured():
     return base_url() is not None
 
 
-def chat(messages, model=None, temperature=0.2, timeout=60):
+def model():
+    return (
+        os.getenv("AI_ROUTER_MODEL")
+        or os.getenv("9ROUTER_MODEL")
+        or "kr/claude-sonnet-4.5"
+    )
+
+
+def api_key():
+    return (
+        os.getenv("AI_ROUTER_API_KEY")
+        or os.getenv("9ROUTER_API_KEY")
+        or os.getenv("NINEROUTER_KEY")
+        or "9router"
+    )
+
+
+def chat(messages, model_name=None, temperature=0.2, timeout=60):
     """Send one chat-completions request through 9Router/OpenAI-compatible API."""
     endpoint = base_url()
     if not endpoint:
-        raise RuntimeError("9Router is not configured: set AI_ROUTER_BASE_URL or 9ROUTER_BASE_URL")
+        raise RuntimeError(
+            "9Router is not configured: set AI_ROUTER_BASE_URL or NINEROUTER_URL"
+        )
 
     payload = {
-        "model": model or os.getenv("AI_ROUTER_MODEL", "kr/claude-sonnet-4.5"),
+        "model": model_name or model(),
         "messages": messages,
         "temperature": temperature,
     }
-    api_key = os.getenv("AI_ROUTER_API_KEY") or os.getenv("9ROUTER_API_KEY") or "9router"
     request = Request(
         endpoint,
         data=json.dumps(payload).encode("utf-8"),
         headers={
             "Content-Type": "application/json",
-            "Authorization": "Bearer " + api_key,
-            "User-Agent": "KikikJourney-AI-Opportunity-Lab/1.0",
+            "Authorization": "Bearer " + api_key(),
+            "User-Agent": "KikikJourney-AI-Opportunity-Lab/1.1",
         },
         method="POST",
     )
@@ -62,3 +92,4 @@ def chat(messages, model=None, temperature=0.2, timeout=60):
 if __name__ == "__main__":
     print("9Router configured:", configured())
     print("Endpoint:", base_url() or "(not configured)")
+    print("Model:", model())
