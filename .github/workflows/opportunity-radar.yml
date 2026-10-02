@@ -10,6 +10,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: opportunity-radar-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   radar:
     runs-on: ubuntu-latest
@@ -32,6 +36,17 @@ jobs:
           NINEROUTER_KEY: ${{ secrets.NINEROUTER_KEY }}
           NINEROUTER_MODEL: ${{ secrets.NINEROUTER_MODEL }}
         run: python opportunity_radar.py
+
+      - name: Report AI router mode
+        run: |
+          if [ -n "${AI_ROUTER_BASE_URL:-}" ] || [ -n "${NINEROUTER_URL:-}" ]; then
+            echo "AI router configured; enrichment will be attempted."
+          else
+            echo "AI router not configured; deterministic radar mode."
+          fi
+        env:
+          AI_ROUTER_BASE_URL: ${{ secrets.AI_ROUTER_BASE_URL }}
+          NINEROUTER_URL: ${{ secrets.NINEROUTER_URL }}
 
       - name: Package revenue experiments
         run: python opportunity_packager.py
