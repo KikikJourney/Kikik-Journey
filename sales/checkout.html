@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Opportunity Validation Kit — Direct Checkout</title>
+<style>body{font-family:system-ui;max-width:860px;margin:auto;padding:28px 18px;line-height:1.55;background:#fafafa;color:#171717}.card{background:#fff;border:1px solid #ddd;border-radius:18px;padding:24px;margin:18px 0}.price{font-size:34px;font-weight:800}.qr{max-width:320px;width:100%;display:block;margin:18px auto;border-radius:12px;border:1px solid #ddd}.cta{display:inline-block;border-radius:10px;padding:13px 18px;background:#111;color:#fff;text-decoration:none;font-weight:700}.muted{color:#666}.small{font-size:13px}.hidden{display:none}</style>
+</head>
+<body>
+<p class="muted">AI Opportunity Lab · Direct checkout</p>
+<h1>Validate the opportunity before you build the product.</h1>
+<p>A compact execution kit for AI builders, automation freelancers and indie founders.</p>
+<div class="card"><div class="price">Rp19.000</div><p>AI Opportunity Validation Kit · digital product</p><ul><li>Opportunity scorecard</li><li>48-hour validation checklist</li><li>AI research prompts</li><li>Paid-pilot offer card</li><li>License and commercial-risk check</li></ul></div>
+<div class="card"><h2>Pay with QRIS</h2><p>Scan the merchant QRIS and pay <strong>Rp19.000</strong>.</p><img id="qris" class="qr" src="../assets/qris.png" alt="Merchant QRIS"><p id="fallback" class="muted hidden">QRIS is not configured yet. Add assets/qris.png before publishing.</p><p class="small muted">Verify the merchant name and amount before confirming.</p></div>
+<div class="card"><h2>After payment</h2><ol><li>Keep the successful transaction reference.</li><li>Use the confirmation channel and send the reference plus delivery email/address.</li><li>The merchant verifies the payment before releasing the product.</li></ol><a id="contact" class="cta" href="#">Send payment confirmation</a><p id="contactFallback" class="small muted hidden">Set contact_url in payment-config.json.</p></div>
+<div class="card"><p class="small muted">This is a first-party checkout and does not use a marketplace. Never send passwords, OTPs, private keys or other sensitive credentials.</p></div>
+<script>fetch('../payment-config.json').then(r=>r.ok?r.json():Promise.reject()).then(c=>{if(c.qris_image)document.getElementById('qris').src='../'+c.qris_image.replace(/^\\/+/, '');if(c.contact_url)document.getElementById('contact').href=c.contact_url;else document.getElementById('contactFallback').classList.remove('hidden')}).catch(()=>{document.getElementById('fallback').classList.remove('hidden');document.getElementById('contactFallback').classList.remove('hidden')});</script>
+</body></html>
