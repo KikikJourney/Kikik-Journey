@@ -28,6 +28,18 @@ class RouterConfigTests(unittest.TestCase):
                 "http://localhost:20128/v1/chat/completions",
             )
 
+
+    def test_openrouter_free_mode_needs_only_api_key(self):
+        with patch.dict(
+            os.environ,
+            {"OPENROUTER_API_KEY": "test-key"},
+            clear=True,
+        ):
+            self.assertTrue(ai_router.configured())
+            self.assertEqual(ai_router.base_url(), "https://openrouter.ai/api/v1/chat/completions")
+            self.assertEqual(ai_router.model(), "openrouter/free")
+            self.assertEqual(ai_router.api_key(), "test-key")
+
     def test_native_key_and_model_are_supported(self):
         with patch.dict(
             os.environ,
