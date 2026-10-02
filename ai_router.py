@@ -1,12 +1,14 @@
-"""Minimal OpenAI-compatible client for optional 9Router integration.
+"""Small OpenAI-compatible AI client with optional 9Router or hosted OpenRouter.
 
-The application remains fully functional without 9Router. The router can be
-configured with either NINEROUTER_* (9Router-native) or AI_ROUTER_* variables.
+9Router remains supported for self-hosted deployments. OpenRouter can be used
+directly from GitHub Actions with one API key, so no computer or VPS is needed.
 """
 import json
 import os
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
+
+OPENROUTER_BASE = "https://openrouter.ai/api/v1"
 
 
 def _raw_base_url():
@@ -14,6 +16,7 @@ def _raw_base_url():
         os.getenv("AI_ROUTER_BASE_URL")
         or os.getenv("9ROUTER_BASE_URL")
         or os.getenv("NINEROUTER_URL")
+        or (OPENROUTER_BASE if os.getenv("OPENROUTER_API_KEY") else None)
     )
 
 
@@ -38,7 +41,8 @@ def model():
         os.getenv("AI_ROUTER_MODEL")
         or os.getenv("9ROUTER_MODEL")
         or os.getenv("NINEROUTER_MODEL")
-        or "kr/claude-sonnet-4.5"
+        or os.getenv("OPENROUTER_MODEL")
+        or ("openrouter/free" if os.getenv("OPENROUTER_API_KEY") else "kr/claude-sonnet-4.5")
     )
 
 
@@ -47,23 +51,28 @@ def api_key():
         os.getenv("AI_ROUTER_API_KEY")
         or os.getenv("9ROUTER_API_KEY")
         or os.getenv("NINEROUTER_KEY")
+        or os.getenv("OPENROUTER_API_KEY")
         or "9router"
     )
 
 
-def models(timeout=20):
-    """Return OpenAI-compatible models exposed by the configured router."""
+def _models_endpoint():
     root = base_url()
     if not root:
-        raise RuntimeError(
-            "9Router is not configured: set AI_ROUTER_BASE_URL or NINEROUTER_URL"
-        )
-    endpoint = root.rsplit("/chat/completions", 1)[0].rsplit("/v1", 1)[0] + "/v1/models"
+        return None
+    return root.rsplit("/chat/completions", 1)[0].rsplit("/v1", 1)[0] + "/v1/models"
+
+
+def models(timeout=20):
+    """Return OpenAI-compatible models exposed by the configured provider."""
+    endpoint = _models_endpoint()
+    if not endpoint:
+        raise RuntimeError("AI provider is not configured")
     request = Request(
         endpoint,
         headers={
             "Authorization": "Bearer " + api_key(),
-            "User-Agent": "KikikJourney-AI-Opportunity-Lab/1.1",
+            "User-Agent": "KikikJourney-AI-Opportunity-Lab/1.2",
         },
         method="GET",
     )
@@ -71,16 +80,17 @@ def models(timeout=20):
         with urlopen(request, timeout=timeout) as response:
             data = json.load(response)
     except (HTTPError, URLError, TimeoutError) as exc:
-        raise RuntimeError(f"AI router model discovery failed: {exc}") from exc
+        raise RuntimeError(f"AI provider model discovery failed: {exc}") from exc
     return data.get("data") or []
 
 
 def chat(messages, model_name=None, temperature=0.2, timeout=60):
-    """Send one chat-completions request through 9Router/OpenAI-compatible API."""
+    """Send one OpenAI-compatible chat-completions request."""
     endpoint = base_url()
     if not endpoint:
         raise RuntimeError(
-            "9Router is not configured: set AI_ROUTER_BASE_URL or NINEROUTER_URL"
+            "AI provider is not configured: set OPENROUTER_API_KEY, "
+            "AI_ROUTER_BASE_URL, or NINEROUTER_URL"
         )
 
     payload = {
@@ -94,7 +104,9 @@ def chat(messages, model_name=None, temperature=0.2, timeout=60):
         headers={
             "Content-Type": "application/json",
             "Authorization": "Bearer " + api_key(),
-            "User-Agent": "KikikJourney-AI-Opportunity-Lab/1.1",
+            "User-Agent": "KikikJourney-AI-Opportunity-Lab/1.2",
+            "HTTP-Referer": "https://github.com/KikikJourney/Kikik-Journey",
+            "X-Title": "KikikJourney AI Opportunity Lab",
         },
         method="POST",
     )
@@ -102,19 +114,19 @@ def chat(messages, model_name=None, temperature=0.2, timeout=60):
         with urlopen(request, timeout=timeout) as response:
             data = json.load(response)
     except (HTTPError, URLError, TimeoutError) as exc:
-        raise RuntimeError(f"AI router request failed: {exc}") from exc
+        raise RuntimeError(f"AI provider request failed: {exc}") from exc
 
     choices = data.get("choices") or []
     if not choices:
-        raise RuntimeError("AI router returned no choices")
+        raise RuntimeError("AI provider returned no choices")
     message = choices[0].get("message") or {}
     content = message.get("content")
     if not isinstance(content, str):
-        raise RuntimeError("AI router response has no text content")
+        raise RuntimeError("AI provider response has no text content")
     return content
 
 
 if __name__ == "__main__":
-    print("9Router configured:", configured())
+    print("AI provider configured:", configured())
     print("Endpoint:", base_url() or "(not configured)")
     print("Model:", model())
