@@ -51,6 +51,30 @@ def api_key():
     )
 
 
+def models(timeout=20):
+    """Return OpenAI-compatible models exposed by the configured router."""
+    root = base_url()
+    if not root:
+        raise RuntimeError(
+            "9Router is not configured: set AI_ROUTER_BASE_URL or NINEROUTER_URL"
+        )
+    endpoint = root.rsplit("/chat/completions", 1)[0].rsplit("/v1", 1)[0] + "/v1/models"
+    request = Request(
+        endpoint,
+        headers={
+            "Authorization": "Bearer " + api_key(),
+            "User-Agent": "KikikJourney-AI-Opportunity-Lab/1.1",
+        },
+        method="GET",
+    )
+    try:
+        with urlopen(request, timeout=timeout) as response:
+            data = json.load(response)
+    except (HTTPError, URLError, TimeoutError) as exc:
+        raise RuntimeError(f"AI router model discovery failed: {exc}") from exc
+    return data.get("data") or []
+
+
 def chat(messages, model_name=None, temperature=0.2, timeout=60):
     """Send one chat-completions request through 9Router/OpenAI-compatible API."""
     endpoint = base_url()
