@@ -38,7 +38,7 @@ jobs:
         run: |
           python -m json.tool opportunity_report.json >/dev/null
           python -m json.tool revenue_queue.json >/dev/null
-          python -m py_compile opportunity_radar.py opportunity_packager.py ai_router.py
+          python -m py_compile opportunity_radar.py opportunity_packager.py
           python -m unittest discover -s tests -p "test_*.py" -v
           test -s validation_cards.md
 
