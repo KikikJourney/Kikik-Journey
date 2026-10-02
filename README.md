@@ -15,21 +15,25 @@ This repository is deliberately separate from Crypto-Scanner.
 
 The radar does not copy proprietary code, bypass licenses, abuse APIs, or assume commercial rights without license review.
 
-## First monetization lane
+## Current product
 
-Zorathvael Business Growth Audit / implementation services.
+**AI Opportunity Validation Kit**
 
-Existing purchase page:
-https://zorath.gumroad.com/l/mgozpo
+A practical execution toolkit for finding a narrow AI/automation problem, turning it into a fixed-scope paid pilot, and validating demand before building a larger product.
+
+Product assets live in:
+products/ai-opportunity-validation-kit/
+
+## Automation
+
+opportunity_radar.py scans public GitHub metadata every six hours through GitHub Actions.
+
+The pipeline then packages the highest-ranked evidence into a revenue-validation queue.
 
 ## Evidence rule
 
 A candidate is not considered a business merely because an AI model says it is interesting. It needs observable evidence, a clear problem hypothesis, a monetizable deliverable, a low-cost validation path, and a license/commercial-use check.
 
-## Automation
-
-opportunity_radar.py scans public GitHub metadata every six hours through GitHub Actions and commits the latest opportunity_report.json.
-
 ## Status
 
-Research/validation stage. No revenue is assumed until external users actually pay.
+Active build and validation stage. No revenue is assumed until external users actually pay.
