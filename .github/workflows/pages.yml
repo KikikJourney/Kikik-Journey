@@ -1,34 +1,35 @@
-name: Deploy site
+name: Validate and publish site
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  validate:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-      - name: Upload site
-        uses: actions/upload-pages-artifact@v3
+      - uses: actions/checkout@v4
+      - name: Validate sales assets
+        run: |
+          test -s index.html
+          test -s sales/checkout.html
+          test -s payment-config.example.json
+          python - <<'PY'
+          import json
+          json.load(open('payment-config.example.json'))
+          PY
+      - name: Package site artifact
+        uses: actions/upload-artifact@v4
         with:
-          path: .
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
+          name: direct-sales-site
+          path: |
+            index.html
+            sales/
+            products/ai-opportunity-validation-kit/
+            payment-config.example.json
+            README.md
+
+# GitHub Pages deployment is intentionally not attempted here until Pages is enabled
+# in repository Settings > Pages. The sales site remains first-party and contains no
+# marketplace payment integration.
