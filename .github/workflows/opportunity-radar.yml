@@ -27,13 +27,26 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: python opportunity_radar.py
 
+      - name: Package revenue experiments
+        run: python opportunity_packager.py
+
       - name: Validate
         run: |
           python -m json.tool opportunity_report.json >/dev/null
-          python -m py_compile opportunity_radar.py
+          python -m json.tool revenue_queue.json >/dev/null
+          python -m py_compile opportunity_radar.py opportunity_packager.py
+          test -s validation_cards.md
 
-      - name: Upload report
+      - name: Upload opportunity report
         uses: actions/upload-artifact@v4
         with:
           name: opportunity-report
           path: opportunity_report.json
+
+      - name: Upload revenue queue
+        uses: actions/upload-artifact@v4
+        with:
+          name: revenue-validation-queue
+          path: |
+            revenue_queue.json
+            validation_cards.md
