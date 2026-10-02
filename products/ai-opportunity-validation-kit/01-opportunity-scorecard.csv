@@ -1,0 +1,11 @@
+field,description,score_0_to_5
+problem_frequency,How often the target buyer experiences the problem,
+problem_severity,Cost/time/revenue impact when the problem occurs,
+buyer_clarity,How clearly a specific buyer can be named,
+existing_spend,Evidence the buyer already spends money around this workflow,
+pain_evidence,Concrete evidence from issues/reviews/support requests/interviews,
+solution_gap,How poorly the current solution handles the specific pain,
+distribution_access,Ability to reach the target buyer without paid ads,
+time_to_pilot,How quickly a useful paid pilot can be delivered,
+repeatability,Potential to turn the pilot into a repeatable service/product,
+license_safety,Confidence that third-party components can legally be reused,
