@@ -21,15 +21,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate sales assets
+      - name: Validate sales and solution assets
         run: |
           test -s index.html
           test -s sales/checkout.html
+          test -s sales/woocommerce.html
+          test -s sales/wa-sheet.html
           test -s payment-config.example.json
-          python - <<'PY'
-          import json
-          json.load(open("payment-config.example.json"))
-          PY
+          test -s solutions/woocommerce-google-sheets.html
+          test -s solutions/whatsapp-google-sheets.html
+          test -s solutions/workflow-automation.html
+          python -c 'import json; json.load(open("payment-config.example.json"))'
 
   deploy:
     needs: validate
