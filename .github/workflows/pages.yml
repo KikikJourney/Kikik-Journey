@@ -31,6 +31,8 @@ jobs:
           test -s solutions/woocommerce-google-sheets.html
           test -s solutions/whatsapp-google-sheets.html
           test -s solutions/workflow-automation.html
+          test -s tools/workflow-diagnostic.html
+          test -s .github/ISSUE_TEMPLATE/implementation-intake.yml
           python -c 'import json; json.load(open("payment-config.example.json"))'
 
   deploy:
