@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "AI Opportunity Lab Prospect Queue",
+  "type": "object",
+  "required": ["generated_at", "source", "leads"],
+  "properties": {
+    "generated_at": {"type": "string"},
+    "source": {"type": "string", "enum": ["ai_vibe_prospecting", "github_public_request", "manual_public_research"]},
+    "leads": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["company", "fit", "status"],
+        "properties": {
+          "company": {"type": "string"},
+          "domain": {"type": "string"},
+          "contact_name": {"type": "string"},
+          "contact_role": {"type": "string"},
+          "contact_email": {"type": "string"},
+          "intent_topic": {"type": "string"},
+          "offer": {"type": "string"},
+          "fit": {"type": "number", "minimum": 0, "maximum": 100},
+          "evidence_url": {"type": "string"},
+          "evidence": {"type": "string"},
+          "status": {
+            "type": "string",
+            "enum": ["NEW", "QUALIFIED", "CONTACTED", "REPLIED", "PAID", "DELIVERED", "LOST"]
+          },
+          "last_action_at": {"type": "string"},
+          "notes": {"type": "string"}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
