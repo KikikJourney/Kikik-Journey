@@ -8,7 +8,7 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 API = "https://api.github.com"
-USER_AGENT = "KikikJourney-AI-Opportunity-Radar/1.3"
+USER_AGENT = "KikikJourney-AI-Opportunity-Radar/1.4"
 TOKEN = os.getenv("GITHUB_TOKEN")
 LOOKBACK_DAYS = 45
 QUERIES = [
@@ -16,6 +16,14 @@ QUERIES = [
     "topic:llm pushed:>2026-08-18 stars:>30",
     "topic:automation pushed:>2026-08-18 stars:>20",
     "topic:ai-agents pushed:>2026-08-18 stars:>20",
+]
+BUYER_QUERIES = [
+    '"looking for" automation',
+    '"need" automation "google sheets"',
+    '"looking for" "google sheets" integration',
+    '"woocommerce" "google sheets" automation',
+    '"whatsapp" "google sheets" automation',
+    '"workflow automation" "freelance"',
 ]
 
 PAIN = {
@@ -43,7 +51,6 @@ def api(path, params=None, attempts=4):
     }
     if TOKEN:
         headers["Authorization"] = "Bearer " + TOKEN
-
     for attempt in range(attempts):
         try:
             request = Request(url, headers=headers, method="GET")
@@ -89,13 +96,50 @@ def fetch_issues(full_name):
         print(f"Issues unavailable for {full_name}: {type(exc).__name__}")
         return []
 
+def search_buyer_requests():
+    found = {}
+    failures = []
+    for query in BUYER_QUERIES:
+        try:
+            payload = api("/search/issues", {
+                "q": query + " type:issue",
+                "sort": "updated",
+                "order": "desc",
+                "per_page": 15,
+            })
+            for item in payload.get("items", []):
+                if item.get("pull_request"):
+                    continue
+                found[item["html_url"]] = item
+        except Exception as exc:
+            failures.append({"query": query, "error": f"{type(exc).__name__}: {exc}"})
+    requests = []
+    for item in found.values():
+        text = f'{item.get("title", "")} {item.get("body") or ""}'
+        score = min(
+            100,
+            keyword_score(text, PAIN) * 2
+            + keyword_score(text, BUYER_SIGNALS) * 2
+            + min(30, len(text) / 120),
+        )
+        requests.append({
+            "title": item.get("title"),
+            "url": item.get("html_url"),
+            "repository": (item.get("repository_url") or "").rsplit("/", 1)[-1],
+            "updated_at": item.get("updated_at"),
+            "score": round(score, 2),
+            "evidence": text[:1000],
+            "validation_action": "Verify that the request is still active, then offer a narrow fixed-scope implementation rather than building before commitment.",
+        })
+    requests.sort(key=lambda x: x["score"], reverse=True)
+    return requests[:25], failures
+
 def build_candidate(repo, readme, issues):
     issue_text = "\n".join(
         f"{item.get('title', '')} {item.get('body') or ''}" for item in issues
         if "pull_request" not in item
     )
     evidence_text = (readme + "\n" + issue_text).lower()
-
     pain = min(25, keyword_score(evidence_text, PAIN) + min(10, len(issues)))
     buyer = min(15, keyword_score(evidence_text, BUYER_SIGNALS))
     stars = repo.get("stargazers_count", 0)
@@ -105,12 +149,9 @@ def build_candidate(repo, readme, issues):
     activity = 8
     license_bonus = 8 if license_state(repo).startswith("PERMISSIVE:") else 0
     score = round(min(100, interest + pain + buyer + packaging + activity + license_bonus), 2)
-
     offer = (
-        "Implementation + integration service"
-        if buyer >= 5
-        else "Setup/production-readiness audit"
-        if pain >= 8
+        "Implementation + integration service" if buyer >= 5
+        else "Setup/production-readiness audit" if pain >= 8
         else "Narrow convenience layer or workflow tool"
     )
     validation = (
@@ -118,7 +159,6 @@ def build_candidate(repo, readme, issues):
         if pain >= 8
         else "Inspect issues/docs for one concrete friction point before building."
     )
-
     return {
         "full_name": repo["full_name"],
         "url": repo.get("html_url"),
@@ -140,10 +180,7 @@ def build_candidate(repo, readme, issues):
             "activity": activity,
             "license": license_state(repo),
             "recent_issue_samples": [
-                {
-                    "title": i.get("title"),
-                    "url": i.get("html_url"),
-                }
+                {"title": i.get("title"), "url": i.get("html_url")}
                 for i in issues[:5] if "pull_request" not in i
             ],
         },
@@ -159,7 +196,6 @@ def build_candidate(repo, readme, issues):
 def main():
     repos = {}
     failures = []
-
     for query in QUERIES:
         try:
             payload = api("/search/repositories", {
@@ -168,7 +204,7 @@ def main():
             for repo in payload.get("items", []):
                 repos[repo["full_name"]] = repo
         except Exception as exc:
-            failures.append({"stage": "search", "query": query, "error": f"{type(exc).__name__}: {exc}"})
+            failures.append({"stage": "repo_search", "query": query, "error": f"{type(exc).__name__}: {exc}"})
             print(f"Search failed: {query}: {exc}")
 
     if not repos:
@@ -176,28 +212,31 @@ def main():
 
     candidates = []
     for name, repo in repos.items():
-        readme = fetch_readme(name)
-        issues = fetch_issues(name)
-        candidates.append(build_candidate(repo, readme, issues))
+        candidates.append(build_candidate(repo, fetch_readme(name), fetch_issues(name)))
         time.sleep(0.05)
 
+    buyer_requests, buyer_failures = search_buyer_requests()
+    failures.extend({"stage": "buyer_search", **item} for item in buyer_failures)
     candidates.sort(key=lambda item: item["score"], reverse=True)
     top = candidates[:20]
+
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "method": "GitHub metadata + README + recent issue evidence + deterministic monetization heuristics; no external AI model",
+        "method": "GitHub repository + public issue/request evidence + deterministic monetization heuristics; no external AI model",
         "lookback_days": LOOKBACK_DAYS,
         "warning": "Prioritization and validation hypotheses only; not proof of demand or revenue.",
         "search_failures": failures,
         "candidate_count": len(candidates),
         "candidates": top,
-        "next_action": "Validate the top candidates with a concrete offer before building a larger product.",
+        "buyer_requests": buyer_requests,
+        "next_action": "Validate buyer-request evidence with a concrete offer before building a larger product.",
     }
     with open("opportunity_report.json", "w", encoding="utf-8") as handle:
         json.dump(report, handle, indent=2, ensure_ascii=False)
 
     print(json.dumps({
         "candidates": len(candidates),
+        "buyer_requests": len(buyer_requests),
         "search_failures": len(failures),
         "top": [
             {
@@ -208,6 +247,10 @@ def main():
                 "buyer_intent": item["evidence"]["buyer_intent"],
             }
             for item in top[:10]
+        ],
+        "top_buyer_requests": [
+            {"title": item["title"], "score": item["score"], "url": item["url"]}
+            for item in buyer_requests[:5]
         ],
     }, indent=2))
 
