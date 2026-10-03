@@ -34,13 +34,18 @@ jobs:
       - name: Package revenue experiments
         run: python opportunity_packager.py
 
+      - name: Build customer acquisition queue
+        run: python customer_acquisition.py
+
       - name: Validate
         run: |
           python -m json.tool opportunity_report.json >/dev/null
           python -m json.tool revenue_queue.json >/dev/null
-          python -m py_compile opportunity_radar.py opportunity_packager.py
+          python -m json.tool customer_leads.json >/dev/null
+          python -m py_compile opportunity_radar.py opportunity_packager.py customer_acquisition.py
           python -m unittest discover -s tests -p "test_*.py" -v
           test -s validation_cards.md
+          test -s customer_acquisition.md
 
       - name: Upload opportunity report
         uses: actions/upload-artifact@v4
@@ -55,3 +60,11 @@ jobs:
           path: |
             revenue_queue.json
             validation_cards.md
+
+      - name: Upload customer acquisition queue
+        uses: actions/upload-artifact@v4
+        with:
+          name: customer-acquisition-queue
+          path: |
+            customer_leads.json
+            customer_acquisition.md
