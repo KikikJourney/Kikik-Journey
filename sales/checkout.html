@@ -19,7 +19,8 @@ const kind=p.get('offer')||'woocommerce';
 const offers={
 woocommerce:{title:'WooCommerce → Google Sheets pilot',price:'Rp399.000',desc:'One WooCommerce store → one Google Sheet workflow with field mapping, webhook/API ingestion, duplicate protection and testing.'},
 whatsapp:{title:'WhatsApp → Google Sheets mini automation',price:'Rp199.000',desc:'One message workflow → one Google Sheet with agreed message format and one revision.'},
-validation:{title:'AI Opportunity Validation Kit',price:'Rp19.000',desc:'Digital validation kit for scoring, evidence gathering and paid-pilot packaging.'}
+validation:{title:'AI Opportunity Validation Kit',price:'Rp19.000',desc:'Digital validation kit for scoring, evidence gathering and paid-pilot packaging.'},
+'woocommerce-image':{title:'WooCommerce → Google Sheets image-link enhancement',price:'Rp199.000',desc:'One focused enhancement: export each WooCommerce product image URL into the Google Sheets output, with field mapping and a test run.'}
 };
 const o=offers[kind]||offers.woocommerce;
 document.getElementById('title').textContent=o.title;
