@@ -1,0 +1,43 @@
+name: Implementation intake
+description: Start a fixed-scope implementation after payment or when requesting a scope check.
+title: "[INTAKE] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not post passwords, OTPs, API keys, access tokens, payment card data, or other secrets.
+        For paid work, include only the transaction reference and non-sensitive project details.
+  - type: dropdown
+    id: offer
+    attributes:
+      label: Offer
+      options:
+        - WooCommerce → Google Sheets — Rp399.000
+        - WhatsApp → Google Sheets — Rp199.000
+        - Workflow Rescue — Rp250.000
+        - Validation Kit — Rp19.000
+    validations:
+      required: true
+  - type: input
+    id: reference
+    attributes:
+      label: Payment reference (if already paid)
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: Describe the business outcome and current workflow without sharing credentials.
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: Sanitized sample
+      description: Paste a small example with names, emails, tokens and other private data removed.
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Constraints
+      description: Mention systems, field requirements, deadline, or other non-secret constraints.
