@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 import argparse,json,os,urllib.request
-PROMPT="""You are Prospect Worker v1. Qualify public buyer/request evidence and match it to one supplied offer. Never invent facts. Public request is evidence, not consent. Return ONLY JSON with keys: decision,confidence,problem,buyer_type,matched_offer,priority,evidence,missing_information,reason,next_validation. decision is QUALIFIED/WATCH/REJECT; confidence and priority are 0-100 integers; matched_offer must be null or an exact supplied offer name."""
+PROMPT="""/no_think\nYou are Prospect Worker v1. Qualify public buyer/request evidence and match it to one supplied offer. Never invent facts. Public request is evidence, not consent. Return ONLY the required JSON object. No analysis, no markdown, no extra keys. decision is QUALIFIED/WATCH/REJECT; confidence and priority are integers 0-100; matched_offer is null or an exact supplied offer name."""
 def validate_result(r,p):
  required={"decision","confidence","problem","buyer_type","matched_offer","priority","evidence","missing_information","reason","next_validation"}
  if set(r)!=required: raise ValueError("worker output keys do not match contract")
@@ -14,7 +14,7 @@ def validate_result(r,p):
 def main():
  p=argparse.ArgumentParser(); p.add_argument("--input",required=True); p.add_argument("--output",required=True); p.add_argument("--base-url",default=os.getenv("WORKER_BASE_URL","http://127.0.0.1:8080")); p.add_argument("--model",default=os.getenv("WORKER_MODEL","ggml-org/Qwen3-1.7B-GGUF:Q4_K_M")); a=p.parse_args()
  payload=json.load(open(a.input,encoding="utf-8"))
- body={"model":a.model,"temperature":0,"max_tokens":700,"messages":[{"role":"system","content":PROMPT},{"role":"user","content":json.dumps(payload,ensure_ascii=False)}]}
+ body={"model":a.model,"temperature":0,"max_tokens":700,"messages":[{"role":"system","content":PROMPT},{"role":"user","content":json.dumps(payload,ensure_ascii=False)}],"response_format":{"type":"json_schema","json_schema":{"name":"prospect_result","strict":True,"schema":{"type":"object","additionalProperties":False,"required":["decision","confidence","problem","buyer_type","matched_offer","priority","evidence","missing_information","reason","next_validation"],"properties":{"decision":{"type":"string","enum":["QUALIFIED","WATCH","REJECT"]},"confidence":{"type":"integer","minimum":0,"maximum":100},"problem":{"type":"string"},"buyer_type":{"type":"string"},"matched_offer":{"type":["string","null"]},"priority":{"type":"integer","minimum":0,"maximum":100},"evidence":{"type":"array","items":{"type":"string"}},"missing_information":{"type":"array","items":{"type":"string"}},"reason":{"type":"string"},"next_validation":{"type":"string"}}}}}}
  req=urllib.request.Request(a.base_url.rstrip("/")+"/v1/chat/completions",data=json.dumps(body).encode(),headers={"Content-Type":"application/json"})
  with urllib.request.urlopen(req,timeout=180) as resp: data=json.load(resp)
  content=data["choices"][0]["message"]["content"].strip()
