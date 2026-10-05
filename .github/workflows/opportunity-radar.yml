@@ -20,23 +20,18 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
       - name: Run radar
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: python opportunity_radar.py
-
       - name: Package revenue experiments
         run: python opportunity_packager.py
-
       - name: Build customer acquisition queue
         run: python customer_acquisition.py
-
       - name: Validate
         run: |
           python -m json.tool opportunity_report.json >/dev/null
@@ -48,13 +43,11 @@ jobs:
           python -m unittest discover -s tests -p "test_*.py" -v
           test -s validation_cards.md
           test -s customer_acquisition.md
-
       - name: Upload opportunity report
         uses: actions/upload-artifact@v4
         with:
           name: opportunity-report
           path: opportunity_report.json
-
       - name: Upload revenue queue
         uses: actions/upload-artifact@v4
         with:
@@ -62,7 +55,6 @@ jobs:
           path: |
             revenue_queue.json
             validation_cards.md
-
       - name: Upload customer acquisition queue
         uses: actions/upload-artifact@v4
         with:
@@ -70,7 +62,6 @@ jobs:
           path: |
             customer_leads.json
             customer_acquisition.md
-
       - name: Upload plugin bridge queue
         uses: actions/upload-artifact@v4
         with:
@@ -78,3 +69,48 @@ jobs:
           path: |
             integrations/prospect_queue.json
             integrations/prospect_queue.schema.json
+
+  worker-second-pass:
+    runs-on: ubuntu-latest
+    needs: radar
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download radar report
+        uses: actions/download-artifact@v4
+        with:
+          name: opportunity-report
+          path: worker-input
+      - name: Install llama.cpp
+        run: curl -LsSf https://llama.app/install.sh | sh
+      - name: Start Qwen worker
+        run: |
+          nohup llama serve -hf ggml-org/Qwen3-1.7B-GGUF:Q4_K_M --host 127.0.0.1 --port 8080 > worker.log 2>&1 &
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:8080/health >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          cat worker.log
+          exit 1
+      - name: Run Qwen second-pass qualification
+        run: |
+          python workers/batch_prospect_worker.py             --input worker-input/opportunity_report.json             --output worker_prospect_queue.json             --limit 10
+      - name: Validate worker output
+        run: |
+          python -m json.tool worker_prospect_queue.json >/dev/null
+          python -m py_compile workers/prospect_worker.py workers/batch_prospect_worker.py
+          python -m unittest tests/test_prospect_worker.py tests/test_batch_prospect_worker.py -v
+      - name: Upload worker qualification
+        uses: actions/upload-artifact@v4
+        with:
+          name: qwen-prospect-second-pass
+          path: |
+            worker_prospect_queue.json
+            worker.log
