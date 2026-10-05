@@ -1,0 +1,4 @@
+{
+ "buyer_request":{"title":"Add WooCommerce product image URL to Google Sheets export","url":"https://github.com/example/example/issues/54","text":"Need the WooCommerce product image URL included in the existing Google Sheets export."},
+ "offers":[{"name":"WooCommerce → Google Sheets image-link enhancement","price_idr":199000,"scope":"Add product image URL field, map it to the Sheet, and test the export flow."},{"name":"Workflow Rescue Pilot","price_idr":250000,"scope":"Diagnose and fix one bounded workflow bottleneck."}]
+}
