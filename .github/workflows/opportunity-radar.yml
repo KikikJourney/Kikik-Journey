@@ -5,7 +5,7 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: "17 * * * *"
+    - cron: "17 */6 * * *"
 
 permissions:
   contents: read
@@ -40,7 +40,7 @@ jobs:
           python -m json.tool customer_leads.json >/dev/null
           python -m json.tool integrations/prospect_queue.json >/dev/null
           python -m json.tool integrations/prospect_queue.schema.json >/dev/null
-          python -m py_compile opportunity_radar.py opportunity_packager.py customer_acquisition.py payment_monitor.py outreach_worker.py
+          python -m py_compile opportunity_radar.py opportunity_packager.py customer_acquisition.py
           python -m unittest discover -s tests -p "test_*.py" -v
           test -s validation_cards.md
           test -s customer_acquisition.md
@@ -102,7 +102,10 @@ jobs:
           exit 1
       - name: Run Qwen second-pass qualification
         run: |
-          python workers/batch_prospect_worker.py             --input worker-input/opportunity_report.json             --output worker_prospect_queue.json             --limit 10
+          python workers/batch_prospect_worker.py \
+            --input worker-input/opportunity_report.json \
+            --output worker_prospect_queue.json \
+            --limit 10
       - name: Validate worker output
         run: |
           python -m json.tool worker_prospect_queue.json >/dev/null
@@ -115,28 +118,3 @@ jobs:
           path: |
             worker_prospect_queue.json
             worker.log
-
-  public-outreach:
-    runs-on: ubuntu-latest
-    needs: radar
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Setup Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Download customer queue
-        uses: actions/download-artifact@v4
-        with:
-          name: customer-acquisition-queue
-          path: .
-      - name: Run guarded public outreach
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-          MAX_PUBLIC_OUTREACH_PER_DAY: "3"
-          MIN_OUTREACH_SCORE: "70"
-          MAX_OUTREACH_AGE_DAYS: "14"
-          STATE_BRANCH: bot-state
-          CHECKOUT_BASE_URL: "https://kikikjourney.github.io/Kikik-Journey/sales/checkout.html"
-        run: python outreach_worker.py
