@@ -44,7 +44,7 @@ jobs:
           python -m json.tool business_prospects.json >/dev/null
           python -m json.tool business_first_report.json >/dev/null
           python -m json.tool customer_leads.json >/dev/null
-          python -m py_compile workers/business_prospect_discovery.py workers/business_first_acquisition.py
+          python -m py_compile workers/business_prospect_discovery_v3.py workers/business_first_acquisition.py workers/business_email_outreach.py
           python -m unittest tests/test_business_first_acquisition.py -v
       - uses: actions/upload-artifact@v4
         with:
