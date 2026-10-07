@@ -3,7 +3,10 @@ import os
 import re
 import urllib.parse
 import urllib.request
-from workers.verify_usdt_payment import verify_payment
+try:
+    from workers.verify_usdt_payment import verify_payment
+except ModuleNotFoundError:
+    from verify_usdt_payment import verify_payment
 from datetime import datetime, timezone
 from decimal import Decimal
 
