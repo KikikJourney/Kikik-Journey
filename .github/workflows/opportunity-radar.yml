@@ -121,38 +121,3 @@ jobs:
             worker_prospect_queue.json
             worker.log
 
-  autonomous-outreach:
-    runs-on: ubuntu-latest
-    needs:
-      - radar
-      - worker-second-pass
-    timeout-minutes: 5
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Download business-first customer acquisition queue
-        uses: actions/download-artifact@v4
-        with:
-          name: customer-acquisition-queue
-          path: outreach-input
-      - name: Download Qwen qualification
-        uses: actions/download-artifact@v4
-        with:
-          name: qwen-prospect-second-pass
-          path: outreach-input/qwen
-      - name: Run bounded business email outreach
-        env:
-          AGENTMAIL_API_KEY: ${{ secrets.AGENTMAIL_API_KEY }}
-          AGENTMAIL_INBOX_EMAIL: kikikjourney@agentmail.to
-          KJ_MAX_OUTREACH_PER_RUN: "3"
-        run: |
-          python workers/business_email_outreach.py             --leads outreach-input/customer_leads.json             --qwen outreach-input/qwen/worker_prospect_queue.json             --report outreach_report.json
-      - name: Validate outreach report
-        run: |
-          python -m json.tool outreach_report.json >/dev/null
-          python -m py_compile workers/business_email_outreach.py
-      - name: Upload outreach report
-        uses: actions/upload-artifact@v4
-        with:
-          name: autonomous-outreach-report
-          path: outreach_report.json
