@@ -98,8 +98,13 @@ def main():
             "scope": offer["scope"],
             "timebox": offer["timebox"],
             "response_draft": response_draft(item, offer),
+            "auto_contact_eligible": bool(
+                status == "QUALIFIED"
+                and item.get("url", "").startswith("https://github.com/")
+                and "/issues/" in item.get("url", "")
+            ),
             "next_action": (
-                "Verify the request is still active, then use the response as a relevant one-to-one reply."
+                "Eligible for bounded autonomous one-to-one response when the source is an explicit GitHub buyer-request issue."
                 if status == "QUALIFIED"
                 else "Recheck on the next radar run; do not contact unless the request becomes clearly relevant."
             ),
@@ -114,7 +119,7 @@ def main():
     output = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "method": "Deterministic buyer-request qualification and fixed-offer matching; no external AI.",
-        "warning": "A public request is a lead signal, not consent or a sale. Human review is required before any outbound contact.",
+        "warning": "A public request is a lead signal, not consent or a sale. Autonomous contact is restricted to explicit buyer-request GitHub issues, one-to-one, deduplicated, and rate-capped.",
         "summary": {
             "total": len(leads),
             "qualified": sum(x["status"] == "QUALIFIED" for x in leads),
