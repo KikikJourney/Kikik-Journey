@@ -1,7 +1,7 @@
+import argparse
 import json
 import os
 import re
-import urllib.parse
 import urllib.request
 
 MAX_PER_RUN = int(os.getenv("KJ_MAX_OUTREACH_PER_RUN", "3"))
@@ -51,6 +51,26 @@ def eligible(lead):
     )
 
 
+def qwen_qualified_urls(qwen):
+    urls = set()
+    for result in qwen.get("results", []):
+        if result.get("decision") != "QUALIFIED":
+            continue
+        url = (result.get("source_request") or {}).get("url")
+        if issue_ref(url):
+            urls.add(url.split("#", 1)[0].rstrip("/"))
+    return urls
+
+
+def merge_qualified_leads(leads, qwen):
+    allowed = qwen_qualified_urls(qwen)
+    return [
+        lead for lead in leads
+        if eligible(lead)
+        and lead.get("url", "").split("#", 1)[0].rstrip("/") in allowed
+    ]
+
+
 def comment_body(lead):
     title = lead.get("title") or "your request"
     offer = lead.get("matched_offer")
@@ -90,9 +110,24 @@ def send_one(lead):
 
 
 def main():
-    with open("customer_leads.json", encoding="utf-8") as handle:
-        data = json.load(handle)
-    leads = [lead for lead in data.get("leads", []) if eligible(lead)]
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--leads", default="customer_leads.json")
+    parser.add_argument("--qwen", default=None)
+    parser.add_argument("--report", default="outreach_report.json")
+    args = parser.parse_args()
+
+    with open(args.leads, encoding="utf-8") as handle:
+        lead_data = json.load(handle)
+    leads = lead_data.get("leads", [])
+
+    qwen = {"results": []}
+    if args.qwen:
+        with open(args.qwen, encoding="utf-8") as handle:
+            qwen = json.load(handle)
+        leads = merge_qualified_leads(leads, qwen)
+    else:
+        leads = [lead for lead in leads if eligible(lead)]
+
     results = {}
     contacted = 0
     for lead in leads:
@@ -105,13 +140,18 @@ def main():
         results[status] = results.get(status, 0) + 1
         if status == "contacted":
             contacted += 1
-    print(json.dumps({
-        "eligible": len(leads),
+
+    report = {
+        "eligible_after_qwen": len(leads),
         "contacted": contacted,
         "max_per_run": MAX_PER_RUN,
         "results": results,
-        "policy": "Only explicit public buyer-request issues; one-to-one comments; deduplicated by marker; capped per run.",
-    }, indent=2))
+        "qwen_gate_enabled": bool(args.qwen),
+        "policy": "Only explicit public buyer-request issues that pass the Qwen second pass; one-to-one comments; deduplicated by marker; capped per run; external repositories are never written.",
+    }
+    with open(args.report, "w", encoding="utf-8") as handle:
+        json.dump(report, handle, indent=2)
+    print(json.dumps(report, indent=2))
 
 
 if __name__ == "__main__":
