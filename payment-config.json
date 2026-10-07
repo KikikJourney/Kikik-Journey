@@ -9,7 +9,13 @@
     "usdt": {
       "asset": "USDT",
       "network": "BNB Smart Chain (BEP-20)",
-      "address": "0x4ce7004e7127f8b2386eb355e088f127c24b3fac"
+      "address": "0x4ce7004e7127f8b2386eb355e088f127c24b3fac",
+      "amounts": {
+        "woocommerce": "5",
+        "whatsapp": "2.5",
+        "workflow": "3",
+        "validation": "0.25"
+      }
     }
   }
 }
