@@ -119,10 +119,18 @@ def search(query):
         links += [(u, u) for u in re.findall(r'https?://[^\s<>\]\)"]+', body)]
         for title, url in links:
             clean_url = html.unescape(url).rstrip(".,);")
-            domain = urlparse(clean_url).netloc.lower().removeprefix("www.")
-            if not domain or domain in SEARCH_ENGINE_DOMAINS or any(
+            parsed = urlparse(clean_url)
+            domain = parsed.netloc.lower().removeprefix("www.")
+            path = parsed.path.lower()
+            if (
+                not domain
+                or domain in SEARCH_ENGINE_DOMAINS
+                or path.startswith("/search")
+                or "skip to" in (title or "").lower()
+                or any(
                 domain == blocked or domain.endswith("." + blocked)
                 for blocked in BLOCKED
+            )
             ):
                 continue
             if clean_url in seen:
