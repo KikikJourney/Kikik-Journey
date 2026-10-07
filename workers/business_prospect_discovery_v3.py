@@ -52,7 +52,7 @@ def search(q):
  for target in targets:
   body,_=read(target)
   links = re.findall(r"\[([^\]]+)\]\((https?://[^)]+)\)", body)
-  links += [(u, u) for u in re.findall(r"https?://[^\s<>\\)\]"]+", body)]
+  links += [(u, u) for u in re.findall(r"https?://[^\s<>\)\]\"]+", body)]
   for title,url in links:
    u=html.unescape(url).rstrip(".,);")
    d=urlparse(u).netloc.lower().removeprefix("www.")
