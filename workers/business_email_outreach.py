@@ -108,7 +108,7 @@ def main():
     leads = []
     for lead in lead_data.get("leads", []):
         url = (lead.get("url") or "").rstrip("/")
-        if eligible(lead) and (not qualified_urls or url in qualified_urls):
+        if eligible(lead) and url in qualified_urls:
             leads.append(lead)
 
     results = {}
