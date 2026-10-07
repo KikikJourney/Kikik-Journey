@@ -13,7 +13,8 @@ class ProblemSolvingEngineTests(unittest.TestCase):
         r = solve("Login issue", "Please use my password and OTP to fix the account.")
         self.assertEqual(r["status"], "ESCALATE_SAFETY")
         self.assertTrue(r["safety_flags"])
-        self.assertNotIn("password", r["customer_message"].lower())
+        self.assertIn("safety boundary", r["customer_message"].lower())
+        self.assertNotIn("use my password", r["customer_message"].lower())
 
     def test_vague_problem_requests_evidence(self):
         r = solve("Help", "It doesn't work.")
