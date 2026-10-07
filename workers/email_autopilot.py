@@ -9,6 +9,7 @@ except ModuleNotFoundError:
     from verify_usdt_payment import verify_payment
 from datetime import datetime, timezone
 from decimal import Decimal
+from workers.problem_solving_engine import solve, build_customer_message
 
 API = "https://api.agentmail.to/v0"
 INBOX = os.getenv("AGENTMAIL_INBOX_EMAIL", "kikikjourney@agentmail.to")
@@ -46,7 +47,7 @@ def inbox_id():
 def load_state():
     try:
         with open(STATE, encoding="utf-8") as f: return json.load(f)
-    except FileNotFoundError: return {"processed": {}, "updated_at": None}
+    except FileNotFoundError: return {"processed": {}, "cases": {}, "updated_at": None}
 
 def save_state(state):
     os.makedirs(os.path.dirname(STATE), exist_ok=True)
@@ -176,14 +177,24 @@ def process(inbox,state,message):
               "Checkout and scope: "+CHECKOUT+"\n\n"
               "For crypto payment, use USDT on BNB Smart Chain (BEP-20). Do not send passwords, OTPs, seed phrases, or private keys.")
     elif kind in ("purchase_intent","offer_interest"):
+        problem = solve(subject, text)
+        case_id = problem["case_id"]
+        state.setdefault("cases", {})[case_id] = {
+            "message_id": mid,
+            "customer": to,
+            "status": problem["status"],
+            "category": problem["category"],
+            "hypotheses": problem["hypotheses"],
+            "missing_information": problem["missing_information"],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
         ref, offer = create_order(mid, detail, "pending_payment")
         suffix = ("?offer=" + offer) if offer else ""
-        body=(f"Thanks — automated order intake is open.\\n\\nOrder reference: {ref}\\n"
+        diagnosis = build_customer_message(problem)
+        body=(f"{diagnosis}\\n\\nOrder reference: {ref}\\n"
               f"Checkout: {CHECKOUT}{suffix}\\n\\n"
-              "After USDT payment, reply in this thread with the transaction hash. "
-              "The system will independently verify the BNB Smart Chain (BEP-20) payment. "
-              "For service offers, this thread becomes the intake channel. "
-              "Do not send passwords, OTPs, seed phrases, or private keys.")
+              "The case remains evidence-driven: no problem is marked resolved until the result is independently verified. "
+              "For service offers, this thread is the intake channel. Do not send passwords, OTPs, seed phrases, private keys, or full API secrets.")
     elif kind=="payment":
         ref = explicit_order_ref(text, order_ref(mid))
         offer = detect_offer(text)
@@ -220,7 +231,18 @@ def process(inbox,state,message):
                   "Reply with the transaction hash and exact offer/order reference. "
                   "USDT must be sent on BNB Smart Chain (BEP-20). The system will not mark an order paid without independent on-chain verification.")
     else:
-        state["processed"][mid]={"status":"no_auto_reply","at":datetime.now(timezone.utc).isoformat()}; return "no_auto_reply"
+        problem = solve(subject, text)
+        case_id = problem["case_id"]
+        state.setdefault("cases", {})[case_id] = {
+            "message_id": mid,
+            "customer": to,
+            "status": problem["status"],
+            "category": problem["category"],
+            "hypotheses": problem["hypotheses"],
+            "missing_information": problem["missing_information"],
+            "created_at": datetime.now(timezone.utc).isoformat(),
+        }
+        body = build_customer_message(problem)
     reply(inbox,mid,body)
     label(inbox,mid,["kj-processed","kj-replied",kind])
     state["processed"][mid]={"status":"replied","kind":kind,"at":datetime.now(timezone.utc).isoformat()}
