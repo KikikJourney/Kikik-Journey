@@ -32,7 +32,7 @@ jobs:
       - name: Package revenue experiments
         run: python opportunity_packager.py
       - name: Discover business prospects
-        run: python workers/business_prospect_discovery.py
+        run: python workers/business_prospect_discovery_v3.py
       - name: Build business-first customer acquisition queue
         run: python workers/business_first_acquisition.py
       - name: Validate radar outputs
@@ -44,7 +44,7 @@ jobs:
           python -m json.tool customer_leads.json >/dev/null
           python -m json.tool integrations/prospect_queue.json >/dev/null
           python -m json.tool integrations/prospect_queue.schema.json >/dev/null
-          python -m py_compile opportunity_radar.py opportunity_packager.py workers/business_prospect_discovery.py workers/business_first_acquisition.py workers/business_email_outreach.py
+          python -m py_compile opportunity_radar.py opportunity_packager.py workers/business_prospect_discovery_v3.py workers/business_first_acquisition.py workers/business_email_outreach.py
           python -m unittest discover -s tests -p "test_*.py" -v
           test -s validation_cards.md
           test -s customer_acquisition.md
