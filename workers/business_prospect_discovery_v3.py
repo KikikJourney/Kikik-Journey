@@ -116,7 +116,7 @@ def search(query):
     for target in targets:
         body, _ = read(target)
         links = re.findall(r'\[([^\]]+)\]\((https?://[^\s\)"]+)', body)
-        links += [(u, u) for u in re.findall(r'https?://[^\s<>\]\)"']+', body)]
+        links += [(u, u) for u in re.findall(r"https?://[^\s<>\]\)\"']+", body)]
         for title, url in links:
             clean_url = html.unescape(url).rstrip(".,);")
             parsed = urlparse(clean_url)
