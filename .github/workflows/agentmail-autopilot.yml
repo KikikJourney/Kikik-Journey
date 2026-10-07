@@ -34,5 +34,5 @@ jobs:
           AGENTMAIL_INBOX_EMAIL: kikikjourney@agentmail.to
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          PAYMENT_RECIPIENT: 0x4ce7004e7127f8b2386eb355e088f127c24b3fac
+          PAYMENT_RECIPIENT: "0x4ce7004e7127f8b2386eb355e088f127c24b3fac"
         run: python workers/email_autopilot.py
