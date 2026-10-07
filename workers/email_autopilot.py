@@ -102,6 +102,31 @@ def payment_amount(text, offer):
     return Decimal(m.group(1))
 
 
+def github_find_order(ref):
+    if not GITHUB_TOKEN: return None
+    q = urllib.parse.quote(f"repo:{GITHUB_REPO} is:issue {ref}")
+    req = urllib.request.Request(
+        "https://api.github.com/search/issues?q=" + q,
+        headers={"Accept":"application/vnd.github+json","Authorization":f"Bearer {GITHUB_TOKEN}","X-GitHub-Api-Version":"2022-11-28"},
+    )
+    with urllib.request.urlopen(req, timeout=30) as r:
+        data = json.loads(r.read().decode())
+    items = data.get("items", [])
+    return items[0] if items else None
+
+
+def github_update_issue(number, title, body):
+    if not GITHUB_TOKEN: return None
+    url = f"https://api.github.com/repos/{GITHUB_REPO}/issues/{number}"
+    payload = json.dumps({"title":title,"body":body}).encode()
+    req = urllib.request.Request(url, data=payload, headers={
+        "Accept":"application/vnd.github+json","Authorization":f"Bearer {GITHUB_TOKEN}",
+        "X-GitHub-Api-Version":"2022-11-28","Content-Type":"application/json",
+    }, method="PATCH")
+    with urllib.request.urlopen(req, timeout=30) as r:
+        return json.loads(r.read().decode())
+
+
 def github_issue(title, body):
     if not GITHUB_TOKEN: return None
     url = "https://api.github.com/repos/" + GITHUB_REPO + "/issues"
@@ -164,12 +189,17 @@ def process(inbox,state,message):
         if h and amount:
             result = verify_payment(h, amount, PAYMENT_RECIPIENT)
             if result.get("ok"):
-                github_issue(
-                    f"[ORDER PAID] {ref} — {OFFERS.get(offer, ('Kikik Journey', amount))[0]}",
+                paid_title = f"[ORDER PAID] {ref} — {OFFERS.get(offer, ('Kikik Journey', amount))[0]}"
+                paid_body = (
                     f"Order reference: {ref}\\nStatus: PAID\\nTX hash: {h}\\nAmount: {amount} USDT\\n"
                     f"Recipient: {PAYMENT_RECIPIENT}\\nCustomer: {sender(detail.get('from'))}\\n"
                     f"Verification: {json.dumps(result, sort_keys=True)}"
                 )
+                existing = github_find_order(ref)
+                if existing:
+                    github_update_issue(existing["number"], paid_title, paid_body)
+                else:
+                    github_issue(paid_title, paid_body)
                 if offer == "validation":
                     body=(f"Payment verified on BNB Smart Chain (BEP-20). Order {ref} is PAID.\\n\\n"
                           f"Your AI Opportunity Validation Kit: {VALIDATION_KIT_URL}\\n"
