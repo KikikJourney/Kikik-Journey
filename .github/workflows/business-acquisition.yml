@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Discover public business prospects
-        run: python workers/business_prospect_discovery.py
+        run: python workers/business_prospect_discovery_v2.py
       - name: Build business-first queue
         run: |
           python - <<'PY'
