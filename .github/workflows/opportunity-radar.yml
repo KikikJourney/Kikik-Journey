@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: business-first-radar-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   radar:
@@ -107,7 +107,7 @@ jobs:
           exit 1
       - name: Run Qwen second-pass qualification
         run: |
-          python workers/batch_prospect_worker.py             --input worker-input/business_first_report.json             --output worker_prospect_queue.json             --limit 10
+          python workers/batch_prospect_worker.py             --input worker-input/business_first_report.json             --output worker_prospect_queue.json             --limit 3
       - name: Validate worker output
         run: |
           python -m json.tool worker_prospect_queue.json >/dev/null
