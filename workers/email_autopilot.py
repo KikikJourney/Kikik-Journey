@@ -11,8 +11,16 @@ from datetime import datetime, timezone
 from decimal import Decimal
 try:
     from workers.problem_solving_engine import solve, build_customer_message
+try:
+    from workers.autonomous_resolution import build_plan, resolve
+except ModuleNotFoundError:
+    from autonomous_resolution import build_plan, resolve
 except ModuleNotFoundError:
     from problem_solving_engine import solve, build_customer_message
+try:
+    from workers.autonomous_resolution import build_plan, resolve
+except ModuleNotFoundError:
+    from autonomous_resolution import build_plan, resolve
 
 API = "https://api.agentmail.to/v0"
 INBOX = os.getenv("AGENTMAIL_INBOX_EMAIL", "kikikjourney@agentmail.to")
@@ -182,6 +190,7 @@ def process(inbox,state,message):
     elif kind in ("purchase_intent","offer_interest"):
         problem = solve(subject, text)
         case_id = problem["case_id"]
+        resolution = resolve(problem)
         state.setdefault("cases", {})[case_id] = {
             "message_id": mid,
             "customer": to,
@@ -189,12 +198,13 @@ def process(inbox,state,message):
             "category": problem["category"],
             "hypotheses": problem["hypotheses"],
             "missing_information": problem["missing_information"],
+            "resolution": resolution,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         ref, offer = create_order(mid, detail, "pending_payment")
         suffix = ("?offer=" + offer) if offer else ""
         diagnosis = build_customer_message(problem)
-        body=(f"{diagnosis}\\n\\nOrder reference: {ref}\\n"
+        body=(f"{diagnosis}\n\nOrder reference: {ref}\n"
               f"Checkout: {CHECKOUT}{suffix}\\n\\n"
               "The case remains evidence-driven: no problem is marked resolved until the result is independently verified. "
               "For service offers, this thread is the intake channel. Do not send passwords, OTPs, seed phrases, private keys, or full API secrets.")
@@ -218,15 +228,15 @@ def process(inbox,state,message):
                 else:
                     github_issue(paid_title, paid_body)
                 if offer == "validation":
-                    body=(f"Payment verified on BNB Smart Chain (BEP-20). Order {ref} is PAID.\\n\\n"
-                          f"Your AI Opportunity Validation Kit: {VALIDATION_KIT_URL}\\n"
+                    body=(f"Payment verified on BNB Smart Chain (BEP-20). Order {ref} is PAID.\n\n"
+                          f"Your AI Opportunity Validation Kit: {VALIDATION_KIT_URL}\n"
                           "The kit is ready immediately; no credentials are required.")
                 else:
                     body=(f"Payment verified on BNB Smart Chain (BEP-20). Order {ref} is PAID.\\n\\n"
                           "Your order is now in the automated intake queue. Reply with the non-sensitive "
                           "project requirements for the selected scope. Never send passwords, OTPs, seed phrases, or private keys.")
             else:
-                body=(f"Order {ref}: payment detected but not accepted as paid.\\n\\n"
+                body=(f"Order {ref}: payment detected but not accepted as paid.\n\n"
                       f"Verification status: {result.get('status')}\\n"
                       "Check network, recipient, token, amount, and transaction hash. The system will not mark the order paid until verification succeeds.")
         else:
