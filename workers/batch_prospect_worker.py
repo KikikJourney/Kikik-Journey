@@ -32,8 +32,8 @@ DEFAULT_OFFERS = [
 INTENT_TERMS = [
     "need", "needs", "needed", "looking for", "want", "wanted", "help me",
     "help with", "hire", "hiring", "freelance", "contractor", "looking to",
-    "build", "implement", "fix", "automate", "automation", "manual process",
-    "request for proposal", "rfp", "quote", "budget", "paid",
+    "build", "implement", "fix", "automate", "manual process",
+    "request for proposal", "rfp", "quote", "budget", "paid", "hire", "hiring",
 ]
 
 NON_BUYER_TERMS = [
@@ -58,7 +58,8 @@ def buyer_gate(request, offer):
     # match and an explicit request/implementation intent signal.
     has_offer_match = len(offer_hits) >= 1
     has_intent = len(intent_hits) >= 1
-    research_only = len(non_buyer_hits) >= 1 and not has_intent
+    strong_intent_hits = [k for k in intent_hits if k in {"need", "needs", "needed", "looking for", "want", "wanted", "help me", "help with", "hire", "hiring", "freelance", "contractor", "request for proposal", "rfp", "quote", "budget", "paid"}]
+    research_only = len(non_buyer_hits) >= 1 and len(strong_intent_hits) == 0
 
     return {
         "allowed": has_offer_match and has_intent and not research_only,
