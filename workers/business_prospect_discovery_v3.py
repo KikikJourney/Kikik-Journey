@@ -42,17 +42,23 @@ def read(url):
  except (HTTPError,URLError,TimeoutError,UnicodeError): return "",url
 
 def search(q):
- target="https://www.google.com/search?q="+quote_plus(q)+"&num=10&hl=en"
- body,_=read(target)
  found=[]
- for title,url in re.findall(r"\[([^\]]+)\]\((https?://[^)]+)\)",body):
-  u=html.unescape(url)
-  d=urlparse(u).netloc.lower().removeprefix("www.")
-  if not d or any(d==x or d.endswith("."+x) for x in BLOCKED): continue
-  if u not in {x["url"] for x in found}: found.append({"title":html.unescape(title),"url":u})
-  if len(found)>=12: break
+ seen=set()
+ targets=[
+  "https://www.google.com/search?q="+quote_plus(q)+"&num=10&hl=en",
+  "https://www.bing.com/search?q="+quote_plus(q)+"&count=10",
+  "https://html.duckduckgo.com/html/?q="+quote_plus(q),
+ ]
+ for target in targets:
+  body,_=read(target)
+  for title,url in re.findall(r"\[([^\]]+)\]\((https?://[^)]+)\)",body):
+   u=html.unescape(url)
+   d=urlparse(u).netloc.lower().removeprefix("www.")
+   if not d or any(d==x or d.endswith("."+x) for x in BLOCKED): continue
+   if u in seen: continue
+   seen.add(u); found.append({"title":html.unescape(title),"url":u})
+   if len(found)>=12: return found
  return found
-
 def emails(text):
  return sorted(set(re.findall(r"(?i)(?<![\w.+-])[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}(?![\w.-])",text or "")))
 
