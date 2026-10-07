@@ -202,7 +202,7 @@ def process(inbox,state,message):
         suffix = ("?offer=" + offer) if offer else ""
         diagnosis = build_customer_message(problem)
         body=(f"{diagnosis}\n\nOrder reference: {ref}\n"
-              f"Checkout: {CHECKOUT}{suffix}\\n\\n"
+              f"Checkout: {CHECKOUT}{suffix}\n\n"
               "The case remains evidence-driven: no problem is marked resolved until the result is independently verified. "
               "For service offers, this thread is the intake channel. Do not send passwords, OTPs, seed phrases, private keys, or full API secrets.")
     elif kind=="payment":
@@ -215,8 +215,8 @@ def process(inbox,state,message):
             if result.get("ok"):
                 paid_title = f"[ORDER PAID] {ref} — {OFFERS.get(offer, ('Kikik Journey', amount))[0]}"
                 paid_body = (
-                    f"Order reference: {ref}\\nStatus: PAID\\nTX hash: {h}\\nAmount: {amount} USDT\\n"
-                    f"Recipient: {PAYMENT_RECIPIENT}\\nCustomer: {sender(detail.get('from'))}\\n"
+                    f"Order reference: {ref}\nStatus: PAID\nTX hash: {h}\nAmount: {amount} USDT\n"
+                    f"Recipient: {PAYMENT_RECIPIENT}\nCustomer: {sender(detail.get('from'))}\n"
                     f"Verification: {json.dumps(result, sort_keys=True)}"
                 )
                 existing = github_find_order(ref)
@@ -229,20 +229,21 @@ def process(inbox,state,message):
                           f"Your AI Opportunity Validation Kit: {VALIDATION_KIT_URL}\n"
                           "The kit is ready immediately; no credentials are required.")
                 else:
-                    body=(f"Payment verified on BNB Smart Chain (BEP-20). Order {ref} is PAID.\\n\\n"
+                    body=(f"Payment verified on BNB Smart Chain (BEP-20). Order {ref} is PAID.\n\n"
                           "Your order is now in the automated intake queue. Reply with the non-sensitive "
                           "project requirements for the selected scope. Never send passwords, OTPs, seed phrases, or private keys.")
             else:
                 body=(f"Order {ref}: payment detected but not accepted as paid.\n\n"
-                      f"Verification status: {result.get('status')}\\n"
+                      f"Verification status: {result.get('status')}\n"
                       "Check network, recipient, token, amount, and transaction hash. The system will not mark the order paid until verification succeeds.")
         else:
-            body=(f"Payment notice received for order {ref}.\\n\\n"
+            body=(f"Payment notice received for order {ref}.\n\n"
                   "Reply with the transaction hash and exact offer/order reference. "
                   "USDT must be sent on BNB Smart Chain (BEP-20). The system will not mark an order paid without independent on-chain verification.")
     else:
         problem = solve(subject, text)
         case_id = problem["case_id"]
+        resolution = resolve(problem)
         state.setdefault("cases", {})[case_id] = {
             "message_id": mid,
             "customer": to,
@@ -250,6 +251,7 @@ def process(inbox,state,message):
             "category": problem["category"],
             "hypotheses": problem["hypotheses"],
             "missing_information": problem["missing_information"],
+            "resolution": resolution,
             "created_at": datetime.now(timezone.utc).isoformat(),
         }
         body = build_customer_message(problem)
