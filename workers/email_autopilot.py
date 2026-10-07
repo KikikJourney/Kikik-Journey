@@ -16,10 +16,10 @@ GITHUB_REPO = os.getenv("GITHUB_REPOSITORY", "KikikJourney/Kikik-Journey")
 PAYMENT_RECIPIENT = os.getenv("PAYMENT_RECIPIENT", "0x4ce7004e7127f8b2386eb355e088f127c24b3fac")
 VALIDATION_KIT_URL = "https://github.com/KikikJourney/Kikik-Journey/tree/main/products/ai-opportunity-validation-kit"
 OFFERS = {
-    "woocommerce": ("WooCommerce → Google Sheets pilot", Decimal("399000")),
-    "whatsapp": ("WhatsApp → Google Sheets mini automation", Decimal("199000")),
-    "workflow": ("Workflow Rescue Pilot", Decimal("250000")),
-    "validation": ("AI Opportunity Validation Kit", Decimal("19000")),
+    "woocommerce": ("WooCommerce → Google Sheets pilot", Decimal("5")),
+    "whatsapp": ("WhatsApp → Google Sheets mini automation", Decimal("2.5")),
+    "workflow": ("Workflow Rescue Pilot", Decimal("3")),
+    "validation": ("AI Opportunity Validation Kit", Decimal("0.25")),
 }
 
 def api(path, method="GET", payload=None):
@@ -75,6 +75,11 @@ def order_ref(message_id):
     return "KJ-" + re.sub(r"[^A-Z0-9]", "", str(message_id).upper())[-10:]
 
 
+def explicit_order_ref(text, fallback):
+    m = re.search(r"\bKJ-[A-Z0-9]{4,20}\b", text or "", re.I)
+    return m.group(0).upper() if m else fallback
+
+
 def tx_hash(text):
     m = re.search(r"\b0x[a-fA-F0-9]{64}\b", text or "")
     return m.group(0) if m else None
@@ -92,10 +97,9 @@ def detect_offer(text):
 def payment_amount(text, offer):
     if offer in OFFERS:
         return OFFERS[offer][1]
-    m = re.search(r"(?:rp|idr)\s*([0-9][0-9.,]*)", (text or "").lower())
+    m = re.search(r"(?:usdt)\s*([0-9]+(?:\.[0-9]+)?)", (text or "").lower())
     if not m: return None
-    raw = re.sub(r"[^0-9]", "", m.group(1))
-    return Decimal(raw) if raw else None
+    return Decimal(m.group(1))
 
 
 def github_issue(title, body):
@@ -153,7 +157,7 @@ def process(inbox,state,message):
               "For service offers, this thread becomes the intake channel. "
               "Do not send passwords, OTPs, seed phrases, or private keys.")
     elif kind=="payment":
-        ref = order_ref(mid)
+        ref = explicit_order_ref(text, order_ref(mid))
         offer = detect_offer(text)
         h = tx_hash(text)
         amount = payment_amount(text, offer)
