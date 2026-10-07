@@ -11,16 +11,13 @@ from datetime import datetime, timezone
 from decimal import Decimal
 try:
     from workers.problem_solving_engine import solve, build_customer_message
-try:
-    from workers.autonomous_resolution import build_plan, resolve
-except ModuleNotFoundError:
-    from autonomous_resolution import build_plan, resolve
 except ModuleNotFoundError:
     from problem_solving_engine import solve, build_customer_message
+
 try:
-    from workers.autonomous_resolution import build_plan, resolve
+    from workers.autonomous_resolution import resolve
 except ModuleNotFoundError:
-    from autonomous_resolution import build_plan, resolve
+    from autonomous_resolution import resolve
 
 API = "https://api.agentmail.to/v0"
 INBOX = os.getenv("AGENTMAIL_INBOX_EMAIL", "kikikjourney@agentmail.to")
