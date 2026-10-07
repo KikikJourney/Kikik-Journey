@@ -1,0 +1,124 @@
+name: Business Acquisition Engine
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: "7 */2 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: business-acquisition-v1-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Discover public business prospects
+        run: python workers/business_prospect_discovery.py
+      - name: Build business-first queue
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          report = {"buyer_requests": []}
+          p = Path("opportunity_report.json")
+          if p.exists():
+              report = json.loads(p.read_text(encoding="utf-8"))
+          Path("opportunity_report.json").write_text(
+              json.dumps({"buyer_requests": report.get("buyer_requests", [])}, ensure_ascii=False, indent=2),
+              encoding="utf-8",
+          )
+          PY
+          python workers/business_first_acquisition.py
+      - name: Validate discovery
+        run: |
+          python -m json.tool business_prospects.json >/dev/null
+          python -m json.tool business_first_report.json >/dev/null
+          python -m json.tool customer_leads.json >/dev/null
+          python -m py_compile workers/business_prospect_discovery.py workers/business_first_acquisition.py
+          python -m unittest tests/test_business_first_acquisition.py -v
+      - uses: actions/upload-artifact@v4
+        with:
+          name: business-acquisition-queue
+          path: |
+            business_prospects.json
+            business_first_report.json
+            customer_leads.json
+            customer_acquisition.md
+
+  qualify:
+    needs: discover
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: business-acquisition-queue
+          path: input
+      - name: Install llama.cpp
+        run: curl -LsSf https://llama.app/install.sh | sh
+      - name: Start Qwen worker
+        run: |
+          nohup llama serve -hf ggml-org/Qwen3-1.7B-GGUF:Q4_K_M --host 127.0.0.1 --port 8080 > worker.log 2>&1 &
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8080/health >/dev/null; then exit 0; fi
+            sleep 2
+          done
+          cat worker.log
+          exit 1
+      - name: Qualify top business prospects
+        run: |
+          python workers/batch_prospect_worker.py             --input input/business_first_report.json             --output worker_prospect_queue.json             --limit 3
+      - name: Validate qualification
+        run: |
+          python -m json.tool worker_prospect_queue.json >/dev/null
+          python -m py_compile workers/prospect_worker.py workers/batch_prospect_worker.py
+          python -m unittest tests/test_prospect_worker.py tests/test_batch_prospect_worker.py -v
+      - uses: actions/upload-artifact@v4
+        with:
+          name: business-qwen-qualification
+          path: |
+            worker_prospect_queue.json
+            worker.log
+
+  outreach:
+    needs: qualify
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          name: business-acquisition-queue
+          path: input
+      - uses: actions/download-artifact@v4
+        with:
+          name: business-qwen-qualification
+          path: input/qwen
+      - name: Send bounded business outreach
+        env:
+          AGENTMAIL_API_KEY: ${{ secrets.AGENTMAIL_API_KEY }}
+          AGENTMAIL_INBOX_EMAIL: kikikjourney@agentmail.to
+          KJ_MAX_OUTREACH_PER_RUN: "3"
+        run: |
+          python workers/business_email_outreach.py             --leads input/customer_leads.json             --qwen input/qwen/worker_prospect_queue.json             --report outreach_report.json
+      - name: Validate outreach
+        run: |
+          python -m json.tool outreach_report.json >/dev/null
+          python -m py_compile workers/business_email_outreach.py
+      - uses: actions/upload-artifact@v4
+        with:
+          name: business-outreach-report
+          path: outreach_report.json
