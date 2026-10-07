@@ -33,6 +33,13 @@ jobs:
         run: python opportunity_packager.py
       - name: Build customer acquisition queue
         run: python customer_acquisition.py
+      - name: Autonomous buyer-request outreach
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          CHECKOUT_BASE_URL: https://kikikjourney.github.io/Kikik-Journey/sales/checkout.html
+          KJ_MAX_OUTREACH_PER_RUN: "3"
+        run: python workers/autonomous_outreach.py
       - name: Validate
         run: |
           python -m json.tool opportunity_report.json >/dev/null
