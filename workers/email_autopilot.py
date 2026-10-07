@@ -9,7 +9,10 @@ except ModuleNotFoundError:
     from verify_usdt_payment import verify_payment
 from datetime import datetime, timezone
 from decimal import Decimal
-from workers.problem_solving_engine import solve, build_customer_message
+try:
+    from workers.problem_solving_engine import solve, build_customer_message
+except ModuleNotFoundError:
+    from problem_solving_engine import solve, build_customer_message
 
 API = "https://api.agentmail.to/v0"
 INBOX = os.getenv("AGENTMAIL_INBOX_EMAIL", "kikikjourney@agentmail.to")
