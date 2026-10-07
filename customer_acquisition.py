@@ -129,7 +129,7 @@ def main():
                 and "/issues/" in item.get("url", "")
             ),
             "next_action": (
-                "Eligible for bounded autonomous one-to-one response when the source is an explicit GitHub buyer-request issue."
+                "Eligible for bounded autonomous one-to-one response only when the request is an explicit buyer-request issue in KikikJourney/Kikik-Journey; external repositories are queued for a supported outbound channel instead."
                 if status == "QUALIFIED"
                 else "Recheck on the next radar run; do not contact unless the request becomes clearly relevant."
             ),
@@ -162,7 +162,7 @@ def main():
         f"- Total signals: **{len(leads)}**",
         f"- Qualified: **{output['summary']['qualified']}**",
         f"- Watch: **{output['summary']['watch']}**", "",
-        "> Public buyer signals are leads, not permission or proof of purchase. Review each lead before contacting. Never request private credentials in public.", "",
+        "> Public buyer signals are leads, not permission or proof of purchase. Autonomous contact is restricted to this repository because the workflow token cannot write to foreign repositories. External qualified leads must wait for a supported outbound channel.", "",
     ]
     for lead in leads[:25]:
         lines += [
