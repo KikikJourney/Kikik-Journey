@@ -90,7 +90,7 @@ def read(url):
         try:
             body, _ = get("https://r.jina.ai/" + url)
             return body, url
-        except (HTTPError, URLError, TimeoutError, UnicodeError):
+        except (HTTPError, URLError, TimeoutError, UnicodeError, ValueError):
             if attempt == 0:
                 time.sleep(0.3)
     return "", url
@@ -115,8 +115,8 @@ def search(query):
     ])
     for target in targets:
         body, _ = read(target)
-        links = re.findall(r"\[([^\]]+)\]\((https?://[^)]+)\)", body)
-        links += [(u, u) for u in re.findall(r'https?://[^\s<>\]\)"]+', body)]
+        links = re.findall(r"\[([^\]]+)\]\((https?://[^\s\)"]+)', body)
+        links += [(u, u) for u in re.findall(r'https?://[^\s<>\]\)"']+', body)]
         for title, url in links:
             clean_url = html.unescape(url).rstrip(".,);")
             parsed = urlparse(clean_url)
