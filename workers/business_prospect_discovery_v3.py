@@ -18,7 +18,39 @@ from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 
 LIMIT = int(os.getenv("KJ_BUSINESS_DISCOVERY_LIMIT", "12"))
-SEARCH_TIMEOUT = int(os.getenv("KJ_DISCOVERY_TIMEOUT_SECONDS", "12"))
+SEARCH_TIMEOUT = int(os.getenv("KJ_DISCOVERY_TIMEOUT_SECONDS", "8"))
+UA = "KikikJourney-BusinessProspector/2.0"
+
+# Queries intentionally target explicit commercial/request language. The query
+# itself is never counted as evidence; only the returned page/title is scored.
+QUERIES = [
+    '"need help" automation "google sheets" ecommerce -github -fiverr -upwork',
+    '"looking for" automation "google sheets" business -github -fiverr',
+    '"need a developer" woocommerce automation -github -fiverr',
+    '"looking for" "whatsapp automation" business -github -fiverr',
+    '"need help" "zapier" automation business -github -fiverr',
+    '"help me automate" business workflow -github -fiverr',
+]!/usr/bin/env python3
+"""Business-buyer discovery from public request signals plus public business pages.
+
+The discovery layer deliberately separates:
+1) buyer/request evidence (a person or business explicitly seeking help), and
+2) reachability enrichment (public business website/email/contact page).
+
+A normal business website is not treated as a buyer merely because it mentions
+automation. GitHub is not used as the primary market source.
+"""
+import html
+import json
+import os
+import re
+import time
+from urllib.parse import quote_plus, urljoin, urlparse
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
+
+LIMIT = int(os.getenv("KJ_BUSINESS_DISCOVERY_LIMIT", "12"))
+SEARCH_TIMEOUT = int(os.getenv("KJ_DISCOVERY_TIMEOUT_SECONDS", "8"))
 UA = "KikikJourney-BusinessProspector/2.0"
 
 # Queries intentionally target explicit commercial/request language. The query
@@ -107,7 +139,6 @@ def search(q):
     targets = [
         "https://www.google.com/search?q=" + quote_plus(q) + "&num=10&hl=en",
         "https://www.bing.com/search?q=" + quote_plus(q) + "&count=10",
-        "https://html.duckduckgo.com/html/?q=" + quote_plus(q),
     ]
     for target in targets:
         body, _ = read(target)
