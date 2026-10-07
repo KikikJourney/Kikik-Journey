@@ -1,0 +1,107 @@
+{
+  "processed": {
+    "<010001a10ce7c396-6b1f4074-6d69-4cd4-a7bf-0c31e70d373e-000000@email.amazonses.com>": {
+      "status": "no_auto_reply",
+      "at": "2026-10-07T13:06:52.855505+00:00"
+    },
+    "<010001a10b554570-8dffc9f0-7bb5-4964-a1f2-4934c86f015e-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a10abe2ee0-7870937b-97e4-4a57-a4ad-934c3067e9c9-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a10abbaa9f-b93e356d-2843-4f77-b0c3-437d8f152841-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a10aba12f5-689a3b5c-79b1-45a2-b10c-17ecbac4ef10-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a10aba0977-d2eae626-042b-4b8d-ad19-3768d3fa43b1-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a10aba00f8-249e07f2-b87e-4637-beee-223df5e15680-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a109e6c8db-9ad27aaa-c204-4690-9a4c-16beed50f9d1-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a109e6b6f7-105795af-b676-4059-81b6-392bc688eec7-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a109e63342-5f9c1224-f2c4-43d5-8433-7c5e129f3340-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a107a1e6df-bbadea5b-2741-40cf-b9ea-493f564a401a-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a107a1de67-e29fe13d-a955-48b3-a235-53dac62e01ec-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a1079ae68b-bd07ed0b-a3fe-442e-82df-b851bd1c34e2-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a1068da060-7e0d7d20-98e2-41b1-893e-c24f1ec0fc54-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a1068bda55-892bd6fb-676c-47c2-931c-95aadca87ab3-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a1068bc96e-9a0d88ef-ac2b-4534-bacc-015b6d9094b8-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a1068bb803-8014f2dd-cd1b-4456-9911-7fc583cd216c-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a106642d9f-8de933e7-6064-4a85-bb00-2d5f6a2057e6-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a1066421ef-fea838b3-6b68-44f4-8d27-d985b3eb5c0d-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a1066418fe-500d564a-1ffe-41f0-bb51-50048d5aa411-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a106640fdc-63613b76-93d6-4978-b164-be0af4e38a91-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a105274731-b69ce9d7-010e-4b61-9d66-51e3767bf382-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a102b757d1-7f120c8b-aee5-4a05-b8c4-ce31ab42590e-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a102b746e3-a45365d0-9ff2-4834-8f9e-c0b8b3c14f9d-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a1018e3822-5cf2625b-9940-4833-bdd7-36d92fc961bd-000000@email.amazonses.com>": {
+      "status": "no_auto_reply",
+      "at": "2026-10-07T13:06:57.237690+00:00"
+    },
+    "<010001a1018e368b-aab19773-78b2-42a1-bb09-8e7da802d3e6-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a1018e2d85-7a478247-4101-4d6f-a0fe-3b2f90f4788e-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a1018e2270-c8ee2d46-2ed0-45db-8ffa-06953ed057d7-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a1018e16f3-5273d8d9-76c1-4a57-8d3d-99f5d1c4e6eb-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a1016d947f-1129adfc-e6eb-4dc5-bb02-f1c2416e67d4-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a1016d8964-e26fd948-71a0-440e-bf78-e70ede40ab95-000000@email.amazonses.com>": {
+      "status": "no_auto_reply",
+      "at": "2026-10-07T13:06:58.419702+00:00"
+    },
+    "<010001a1016d841b-39360891-00cc-46dc-8afa-d66387ecd967-000000@email.amazonses.com>": {
+      "status": "ignored"
+    },
+    "<010001a100eeb2aa-7aa69abe-86ce-4016-bc30-11a64a039a1a-000000@email.amazonses.com>": {
+      "status": "ignored"
+    }
+  },
+  "updated_at": "2026-10-07T13:06:58.750821+00:00"
+}
