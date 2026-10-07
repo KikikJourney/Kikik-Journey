@@ -39,6 +39,29 @@ BUYER_TERMS = {
     "google sheets": 8, "woocommerce": 8, "whatsapp": 8,
 }
 
+# High score is not proof of purchase intent. Require explicit implementation intent
+# and reject common research/planning artifacts before autonomous contact.
+EXPLICIT_BUYER_INTENT = (
+    "i need", "need help", "looking for", "hire", "hiring", "freelancer",
+    "developer", "consultant", "agency", "can someone", "is there someone",
+    "help me", "want to automate", "need to automate", "implement", "build me",
+    "set up", "setup", "integrate", "integration help", "fix my", "fix this",
+    "paid help", "for hire", "contractor",
+)
+NON_BUYER_ARTIFACTS = (
+    "roadmap", "master plan", "market & tech review", "research report",
+    "report only", "program charter", "backlog", "release notes", "directory",
+    "feed diff", "daily market review", "job radar", "job search", "job board",
+    "awesome-", "awesome ", "catalog", "execution index", "status update",
+)
+
+def buyer_gate(text, offer):
+    normalized = normalize(text)
+    has_intent = any(term in normalized for term in EXPLICIT_BUYER_INTENT)
+    has_offer = any(keyword in normalized for keyword in offer["keywords"])
+    is_artifact = any(term in normalized for term in NON_BUYER_ARTIFACTS)
+    return has_intent and has_offer and not is_artifact
+
 def normalize(text):
     return re.sub(r"\s+", " ", (text or "").lower()).strip()
 
@@ -62,8 +85,9 @@ def qualify(item):
             recency = max(0, 12 - min(12, age_days // 3))
         except ValueError:
             pass
+    offer = match_offer(text)
     score = min(100, round(float(item.get("score", 0)) + signal + recency, 2))
-    return score, ("QUALIFIED" if score >= 35 else "WATCH")
+    return score, ("QUALIFIED" if score >= 35 and buyer_gate(text, offer) else "WATCH")
 
 def response_draft(item, offer):
     title = item.get("title", "your workflow")
