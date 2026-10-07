@@ -222,7 +222,7 @@ def solve(subject, text):
         missing.append("one sanitized example of expected vs actual result")
 
     case_id = "KJ-" + datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
-    return {
+    result = {
         "engine": "Kikik Journey Problem-Solving Engine v1",
         "case_id": case_id,
         "status": status,
@@ -241,6 +241,9 @@ def solve(subject, text):
             "escalate_when_authority_or_evidence_is_insufficient": True,
         },
     }
+
+    result["customer_message"] = build_customer_message(result)
+    return result
 
 def build_customer_message(result):
     status = result["status"]
