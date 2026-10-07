@@ -12,7 +12,7 @@ permissions:
   issues: write
 
 concurrency:
-  group: business-first-radar-${{ github.ref }}
+  group: business-first-radar-v2-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
