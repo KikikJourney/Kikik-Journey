@@ -8,7 +8,7 @@ on:
     - cron: "*/5 * * * *"
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: agentmail-sales-inbox
@@ -32,10 +32,3 @@ jobs:
           AGENTMAIL_API_KEY: ${{ secrets.AGENTMAIL_API_KEY }}
           AGENTMAIL_INBOX_EMAIL: kikikjourney@agentmail.to
         run: python workers/email_autopilot.py
-      - name: Persist state
-        run: |
-          git config user.name "kikikjourney-automation"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add runtime/email_state.json
-          git diff --cached --quiet || git commit -m "Persist autonomous email state"
-          git push
