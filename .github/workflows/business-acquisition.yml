@@ -12,18 +12,21 @@ permissions:
 
 concurrency:
   group: business-acquisition-v1-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   discover:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
       - name: Discover public business prospects
+        env:
+          KJ_BUSINESS_DISCOVERY_LIMIT: "12"
+          KJ_DISCOVERY_TIMEOUT_SECONDS: "12"
         run: python workers/business_prospect_discovery_v3.py
       - name: Build business-first queue
         run: |
