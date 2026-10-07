@@ -20,6 +20,12 @@ QUERIES = [
     '"looking for" "whatsapp automation" business -github -fiverr',
     '"need help" "zapier" automation business -github -fiverr',
     '"help me automate" business workflow -github -fiverr',
+    'site:community.make.com/t/ "I need help" "Google Sheets" automation',
+    'site:community.make.com/t/ "looking for" automation "Google Sheets"',
+    'site:community.n8n.io/t/ "help needed" automation WhatsApp',
+    'site:community.n8n.io/t/ "looking for" automation workflow',
+    'site:community.zapier.com "looking to use" automation Sheets',
+    'site:forum.pabbly.com "need assistance" automation "Google Sheets"',
 ]
 
 SEARCH_ENGINE_DOMAINS = ("google.com", "bing.com", "duckduckgo.com", "r.jina.ai")
@@ -82,7 +88,8 @@ def get(url, timeout=SEARCH_TIMEOUT):
 def read(url):
     for attempt in range(2):
         try:
-            return get("https://r.jina.ai/" + url)
+            body, _ = get("https://r.jina.ai/" + url)
+            return body, url
         except (HTTPError, URLError, TimeoutError, UnicodeError):
             if attempt == 0:
                 time.sleep(0.3)
@@ -135,7 +142,8 @@ def is_business_email(email, site):
 
 
 def classify(item, body):
-    context = (body + " " + item.get("title", "")).lower()
+    title = (item.get("title") or "").lower()
+    context = (body + " " + title).lower()
     business_hits = sum(k in context for k in BUSINESS)
     pain_hits = sum(k in context for k in PAIN)
     intent_hits = sum(k in context for k in INTENT)
@@ -144,7 +152,20 @@ def classify(item, body):
         for name, keywords in OFFERS.items()
     )
     offer_hits, offer = ranked[-1]
-    return context, business_hits, pain_hits, intent_hits, offer_hits, offer
+    windows = [
+        part.strip().lower()
+        for part in re.split(r"[\n.!?]+", body + " " + item.get("title", ""))
+        if part.strip()
+    ]
+    request_context = any(
+        any(term in window for term in INTENT)
+        and (
+            any(term in window for term in PAIN)
+            or any(term in window for term in OFFERS[offer])
+        )
+        for window in windows
+    )
+    return context, business_hits, pain_hits, intent_hits, offer_hits, offer, request_context
 
 
 def inspect(item, query):
@@ -152,8 +173,14 @@ def inspect(item, query):
     if not body:
         return None
 
-    _, business_hits, pain_hits, intent_hits, offer_hits, offer = classify(item, body)
-    if intent_hits < 1 or pain_hits < 1 or offer_hits < 1 or business_hits < 1:
+    _, business_hits, pain_hits, intent_hits, offer_hits, offer, request_context = classify(item, body)
+    if (
+        not request_context
+        or intent_hits < 1
+        or pain_hits < 1
+        or offer_hits < 1
+        or business_hits < 1
+    ):
         return None
 
     found = [e for e in emails(body) if is_business_email(e, final)]
