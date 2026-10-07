@@ -10,12 +10,13 @@ class BusinessProspectDiscoveryTests(unittest.TestCase):
             "Our ecommerce store manually copies orders into Google Sheets. "
             "We need help automating this workflow."
         )
-        _, business, pain, intent, offer_hits, offer = result
+        _, business, pain, intent, offer_hits, offer, request_context = result
         self.assertGreaterEqual(business, 1)
         self.assertGreaterEqual(pain, 1)
         self.assertGreaterEqual(intent, 1)
         self.assertGreaterEqual(offer_hits, 1)
         self.assertEqual(offer, "WooCommerce → Google Sheets Automation")
+        self.assertTrue(request_context)
 
     def test_provider_without_buyer_intent_is_not_classified(self):
         item = {"title": "WooCommerce to Google Sheets automation service"}
@@ -23,8 +24,9 @@ class BusinessProspectDiscoveryTests(unittest.TestCase):
             item,
             "We build WooCommerce to Google Sheets automation for businesses."
         )
-        _, _, _, intent, _, _ = result
+        _, _, _, intent, _, _, request_context = result
         self.assertEqual(intent, 0)
+        self.assertFalse(request_context)
 
     def test_query_text_is_not_used_as_evidence(self):
         item = {"title": "Automation service"}
