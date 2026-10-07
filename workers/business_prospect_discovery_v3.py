@@ -51,8 +51,10 @@ def search(q):
  ]
  for target in targets:
   body,_=read(target)
-  for title,url in re.findall(r"\[([^\]]+)\]\((https?://[^)]+)\)",body):
-   u=html.unescape(url)
+  links = re.findall(r"\[([^\]]+)\]\((https?://[^)]+)\)", body)
+  links += [(u, u) for u in re.findall(r"https?://[^\s<>\\)\]"]+", body)]
+  for title,url in links:
+   u=html.unescape(url).rstrip(".,);")
    d=urlparse(u).netloc.lower().removeprefix("www.")
    if not d or any(d==x or d.endswith("."+x) for x in BLOCKED): continue
    if u in seen: continue
@@ -69,26 +71,31 @@ def is_business_email(e,site):
 def inspect(item,q):
  body,final=read(item["url"])
  if not body: return None
- context=(body+" "+item.get("title","")+" "+q).lower()
- b=sum(k in context for k in BUSINESS); pain=sum(k in context for k in PAIN); intent=sum(k in context for k in INTENT)
- ranked=sorted((sum(k in context for k in ks),name) for name,ks in OFFERS.items())
+ page_context=(body+" "+item.get("title","")).lower()
+ b=sum(k in page_context for k in BUSINESS); pain=sum(k in page_context for k in PAIN); intent=sum(k in page_context for k in INTENT)
+ ranked=sorted((sum(k in page_context for k in ks),name) for name,ks in OFFERS.items())
  hits,offer=ranked[-1]
  found=[e for e in emails(body) if is_business_email(e,final)]
- if not found:
-  links=re.findall(r"\[[^\]]*(?:contact|about|support|sales)[^\]]*\]\((https?://[^)]+)\)",body,re.I)
-  for u in links[:3]:
+ contact_url=""
+ contact_links=re.findall(r"\[[^\]]*(?:contact|about|support|sales)[^\]]*\]\((https?://[^)]+)\)",body,re.I)
+ if contact_links:
+  contact_url=urljoin(final,contact_links[0])
+  for u in contact_links[:3]:
    ct,cf=read(u); found += [e for e in emails(ct) if is_business_email(e,cf)]
-   if found: break
- if b<2 or pain<1 or intent<1 or hits<1 or not found: return None
+ found=sorted(set(found))
+ if b<2 or pain<1 or intent<1 or hits<1: return None
+ if not found and not contact_url: return None
+ reachability="direct_email" if found else "contact_form_or_contact_page"
  return {
   "source":"public_business_web_signal","source_type":"public_business_web_signal",
   "title":item.get("title") or urlparse(final).netloc,"website":final,
-  "contact_email":found[0],"score":min(100,b*6+pain*7+intent*14+18),
+  "contact_email":found[0] if found else "","contact_url":contact_url,
+  "score":min(100,b*6+pain*7+intent*14+18+(12 if found else 0)),
   "matched_offer":offer,"commercial_intent":intent,"business_signal":b,
   "pain_signal":pain,"evidence":re.sub(r"\s+"," ",body)[:1600],
-  "contact_channel":"public_business_email","reachability":"direct_email","discovery_query":q
+  "contact_channel":"public_business_email" if found else "public_contact_page",
+  "reachability":reachability,"discovery_query":q
  }
-
 def main():
  prospects=[]; domains=set()
  for q in QUERIES:
