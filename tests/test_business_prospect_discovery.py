@@ -34,7 +34,7 @@ class BusinessProspectDiscoveryTests(unittest.TestCase):
             item,
             "Our company provides workflow automation services."
         )
-        _, _, _, intent, _, _ = result
+        _, _, _, intent, _, _, request_context = result
         self.assertEqual(intent, 0)
 
 
