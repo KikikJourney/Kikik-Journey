@@ -26,8 +26,8 @@ jobs:
           python-version: "3.12"
       - name: Validate
         run: |
-          python -m py_compile workers/email_autopilot.py workers/problem_solving_engine.py workers/verify_usdt_payment.py
-          python -m unittest tests/test_email_autopilot.py tests/test_problem_solving_engine.py tests/test_verify_usdt_payment.py -v
+          python -m py_compile workers/email_autopilot.py workers/problem_solving_engine.py workers/autonomous_resolution.py workers/verify_usdt_payment.py
+          python -m unittest tests/test_email_autopilot.py tests/test_problem_solving_engine.py tests/test_autonomous_resolution.py tests/test_verify_usdt_payment.py -v
       - name: Process AgentMail
         env:
           AGENTMAIL_API_KEY: ${{ secrets.AGENTMAIL_API_KEY }}
