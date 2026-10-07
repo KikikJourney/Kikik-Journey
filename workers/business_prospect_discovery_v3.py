@@ -22,6 +22,7 @@ QUERIES = [
     '"help me automate" business workflow -github -fiverr',
 ]
 
+SEARCH_ENGINE_DOMAINS = ("google.com", "bing.com", "duckduckgo.com", "r.jina.ai")
 BLOCKED = (
     "github.com", "reddit.com", "linkedin.com", "facebook.com",
     "instagram.com", "x.com", "twitter.com", "youtube.com",
@@ -102,7 +103,7 @@ def search(query):
         for title, url in links:
             clean_url = html.unescape(url).rstrip(".,);")
             domain = urlparse(clean_url).netloc.lower().removeprefix("www.")
-            if not domain or any(
+            if not domain or domain in SEARCH_ENGINE_DOMAINS or any(
                 domain == blocked or domain.endswith("." + blocked)
                 for blocked in BLOCKED
             ):
