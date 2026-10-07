@@ -160,7 +160,7 @@ def normalize(text):
     return re.sub(r"\s+", " ", (text or "").lower()).strip()
 
 def urls(text):
-    return re.findall(r"https?://\\S+", text or "", re.I)
+    return re.findall(r"https?://\S+", text or "", re.I)
 
 def detect_category(text):
     t = normalize(text)
