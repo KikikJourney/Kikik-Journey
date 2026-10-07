@@ -2,5 +2,14 @@
   "business_name": "Kikik Journey",
   "currency": "IDR",
   "qris_image": "assets/qris.svg",
-  "contact_url": ""
+  "contact_url": "",
+  "payment_methods": {
+    "qris": true,
+    "dana": true,
+    "usdt": {
+      "asset": "USDT",
+      "network": "BNB Smart Chain (BEP-20)",
+      "address": "0x4ce7004e7127f8b2386eb355e088f127c24b3fac"
+    }
+  }
 }
