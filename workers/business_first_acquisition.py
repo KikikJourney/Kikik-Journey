@@ -66,7 +66,7 @@ def make_lead(item, source):
     contact_bonus = 20 if item.get("contact_email") else 0
     source_bonus = 10 if source == "public_business_web_signal" else 0
     score = min(100, round(base + contact_bonus + source_bonus, 2))
-    qualified = explicit and (source != "public_business_web_signal" or bool(item.get("contact_email")))
+    qualified = explicit
     return {
         "status": "QUALIFIED" if qualified else "WATCH",
         "priority_score": score,
@@ -93,10 +93,9 @@ def make_lead(item, source):
             "If not relevant, reply STOP and I will not follow up."
         ).replace(",", "."),
         "auto_contact_eligible": bool(
-            qualified and (
-                source == "public_business_web_signal" and item.get("contact_email")
-                or source == "public_buyer_request" and item.get("url","").startswith("https://github.com/") and "/issues/" in item.get("url","")
-            )
+            qualified
+            and source == "public_business_web_signal"
+            and item.get("contact_email")
         ),
         "do_not_do": [
             "Do not mass-message.",
@@ -136,7 +135,7 @@ def main():
 
     output = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "method": "Business-first acquisition with reachable public business emails; GitHub is secondary.",
+        "method": "Business-first acquisition with public business signals; direct email is preferred for autonomous outreach and contact pages remain queued for later handling; GitHub is secondary.",
         "summary": {
             "total": len(leads),
             "qualified": sum(x["status"] == "QUALIFIED" for x in leads),
