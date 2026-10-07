@@ -40,7 +40,7 @@ class AutonomousOutreachTests(unittest.TestCase):
         lead = {
             "status": "QUALIFIED",
             "source": "public_buyer_request",
-            "url": "https://KikikJourney/Kikik-Journey/issues/42",
+            "url": "https://github.com/KikikJourney/Kikik-Journey/issues/42",
             "matched_offer": "Workflow Rescue Pilot",
             "checkout_path": "sales/checkout.html?offer=workflow",
         }
