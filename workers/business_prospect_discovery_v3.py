@@ -99,10 +99,20 @@ def read(url):
 def search(query):
     found = []
     seen = set()
-    targets = [
+    q = quote_plus(query.replace("site:community.make.com/t/", "").replace("site:community.n8n.io/t/", "").replace("site:community.zapier.com", "").replace("site:forum.pabbly.com", ""))
+    targets = []
+    if "make.com" in query:
+        targets.append("https://community.make.com/search?q=" + q)
+    if "n8n.io" in query:
+        targets.append("https://community.n8n.io/search?q=" + q)
+    if "zapier.com" in query:
+        targets.append("https://community.zapier.com/search?q=" + q)
+    if "pabbly.com" in query:
+        targets.append("https://forum.pabbly.com/search/?q=" + q)
+    targets.extend([
         "https://www.google.com/search?q=" + quote_plus(query) + "&num=10&hl=en",
         "https://www.bing.com/search?q=" + quote_plus(query) + "&count=10",
-    ]
+    ])
     for target in targets:
         body, _ = read(target)
         links = re.findall(r"\[([^\]]+)\]\((https?://[^)]+)\)", body)
