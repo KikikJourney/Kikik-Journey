@@ -50,13 +50,17 @@ def classify(text):
     if any(x in t for x in ("woocommerce","google sheets","whatsapp","automation","workflow")): return "offer_interest"
     return "general"
 
-def reply(inbox,to,subject,body):
-    path="/inboxes/"+urllib.parse.quote(inbox,safe="")+"/messages"
-    return api(path,"POST",{"to":[to],"subject":subject,"text":body})
+def reply(inbox,message_id,body):
+    path="/inboxes/"+urllib.parse.quote(inbox,safe="")+"/messages/"+urllib.parse.quote(message_id,safe="")+"/reply"
+    return api(path,"POST",{"text":body})
+
+def label(inbox,message_id,labels):
+    path="/inboxes/"+urllib.parse.quote(inbox,safe="")+"/messages/"+urllib.parse.quote(message_id,safe="")
+    return api(path,"PATCH",{"add_labels":labels})
 
 def process(inbox,state,message):
     mid=message["message_id"]
-    if mid in state["processed"]: return "already_processed"
+    if "kj-processed" in set(message.get("labels", [])): return "already_processed"
     detail=api("/inboxes/"+urllib.parse.quote(inbox,safe="")+"/messages/"+urllib.parse.quote(mid,safe=""))
     text="\n".join(str(detail.get(k,"")) for k in ("subject","extracted_text","text"))
     kind=classify(text)
@@ -79,7 +83,8 @@ def process(inbox,state,message):
         body=("Payment notice received. We only mark an order paid after independent verification of amount, token contract, destination wallet, transaction status and confirmations. Include the order reference and transaction hash if available. Never send private keys or seed phrases.")
     else:
         state["processed"][mid]={"status":"no_auto_reply","at":datetime.now(timezone.utc).isoformat()}; return "no_auto_reply"
-    reply(inbox,to,"Re: "+subject,body)
+    reply(inbox,mid,body)
+    label(inbox,mid,["kj-processed","kj-replied",kind])
     state["processed"][mid]={"status":"replied","kind":kind,"at":datetime.now(timezone.utc).isoformat()}
     return "replied"
 
