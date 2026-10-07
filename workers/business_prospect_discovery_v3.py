@@ -9,7 +9,7 @@ from urllib.parse import quote_plus,urljoin,urlparse
 from urllib.request import Request,urlopen
 from urllib.error import HTTPError,URLError
 
-LIMIT=int(os.getenv("KJ_BUSINESS_DISCOVERY_LIMIT","12"))
+LIMIT=int(os.getenv("KJ_BUSINESS_DISCOVERY_LIMIT","8"))
 UA="KikikJourney-BusinessProspector/1.2"
 QUERIES=[
  '"need help" automation "google sheets" business',
@@ -57,7 +57,7 @@ def search(q):
    if not d or any(d==x or d.endswith("."+x) for x in BLOCKED): continue
    if u in seen: continue
    seen.add(u); found.append({"title":html.unescape(title),"url":u})
-   if len(found)>=12: return found
+   if len(found)>=6: return found[:6]
  return found
 def emails(text):
  return sorted(set(re.findall(r"(?i)(?<![\w.+-])[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}(?![\w.-])",text or "")))
