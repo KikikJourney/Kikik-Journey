@@ -31,16 +31,20 @@ jobs:
         run: python opportunity_radar.py
       - name: Package revenue experiments
         run: python opportunity_packager.py
-      - name: Build customer acquisition queue
-        run: python customer_acquisition.py
+      - name: Discover business prospects
+        run: python workers/business_prospect_discovery.py
+      - name: Build business-first customer acquisition queue
+        run: python workers/business_first_acquisition.py
       - name: Validate radar outputs
         run: |
           python -m json.tool opportunity_report.json >/dev/null
           python -m json.tool revenue_queue.json >/dev/null
+          python -m json.tool business_prospects.json >/dev/null
+          python -m json.tool business_first_report.json >/dev/null
           python -m json.tool customer_leads.json >/dev/null
           python -m json.tool integrations/prospect_queue.json >/dev/null
           python -m json.tool integrations/prospect_queue.schema.json >/dev/null
-          python -m py_compile opportunity_radar.py opportunity_packager.py customer_acquisition.py
+          python -m py_compile opportunity_radar.py opportunity_packager.py workers/business_prospect_discovery.py workers/business_first_acquisition.py workers/business_email_outreach.py
           python -m unittest discover -s tests -p "test_*.py" -v
           test -s validation_cards.md
           test -s customer_acquisition.md
@@ -63,6 +67,8 @@ jobs:
           path: |
             customer_leads.json
             customer_acquisition.md
+            business_prospects.json
+            business_first_report.json
       - name: Upload plugin bridge queue
         uses: actions/upload-artifact@v4
         with:
@@ -81,10 +87,10 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Download radar report
+      - name: Download business-first report
         uses: actions/download-artifact@v4
         with:
-          name: opportunity-report
+          name: customer-acquisition-queue
           path: worker-input
       - name: Install llama.cpp
         run: curl -LsSf https://llama.app/install.sh | sh
@@ -101,7 +107,7 @@ jobs:
           exit 1
       - name: Run Qwen second-pass qualification
         run: |
-          python workers/batch_prospect_worker.py             --input worker-input/opportunity_report.json             --output worker_prospect_queue.json             --limit 10
+          python workers/batch_prospect_worker.py             --input worker-input/business_first_report.json             --output worker_prospect_queue.json             --limit 10
       - name: Validate worker output
         run: |
           python -m json.tool worker_prospect_queue.json >/dev/null
@@ -120,10 +126,11 @@ jobs:
     needs:
       - radar
       - worker-second-pass
+    timeout-minutes: 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Download customer acquisition queue
+      - name: Download business-first customer acquisition queue
         uses: actions/download-artifact@v4
         with:
           name: customer-acquisition-queue
@@ -133,19 +140,17 @@ jobs:
         with:
           name: qwen-prospect-second-pass
           path: outreach-input/qwen
-      - name: Run bounded autonomous outreach
+      - name: Run bounded business email outreach
         env:
-          GITHUB_TOKEN: ${{ github.token }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          CHECKOUT_BASE_URL: https://kikikjourney.github.io/Kikik-Journey/sales/checkout.html
+          AGENTMAIL_API_KEY: ${{ secrets.AGENTMAIL_API_KEY }}
+          AGENTMAIL_INBOX_EMAIL: kikikjourney@agentmail.to
           KJ_MAX_OUTREACH_PER_RUN: "3"
         run: |
-          python workers/autonomous_outreach.py             --leads outreach-input/customer_leads.json             --qwen outreach-input/qwen/worker_prospect_queue.json             --report outreach_report.json
+          python workers/business_email_outreach.py             --leads outreach-input/customer_leads.json             --qwen outreach-input/qwen/worker_prospect_queue.json             --report outreach_report.json
       - name: Validate outreach report
         run: |
           python -m json.tool outreach_report.json >/dev/null
-          python -m py_compile workers/autonomous_outreach.py
-          python -m unittest tests/test_autonomous_outreach.py -v
+          python -m py_compile workers/business_email_outreach.py
       - name: Upload outreach report
         uses: actions/upload-artifact@v4
         with:
