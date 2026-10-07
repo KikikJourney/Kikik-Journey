@@ -42,11 +42,12 @@ BUYER_TERMS = {
 # High score is not proof of purchase intent. Require explicit implementation intent
 # and reject common research/planning artifacts before autonomous contact.
 EXPLICIT_BUYER_INTENT = (
-    "i need", "need help", "looking for", "hire", "hiring", "freelancer",
-    "developer", "consultant", "agency", "can someone", "is there someone",
-    "help me", "want to automate", "need to automate", "implement", "build me",
-    "set up", "setup", "integrate", "integration help", "fix my", "fix this",
-    "paid help", "for hire", "contractor",
+    "need someone", "need help", "looking for someone", "looking for a developer",
+    "looking for a freelancer", "looking to hire", "hire a developer", "hire someone",
+    "hiring a developer", "hiring someone", "freelancer wanted", "contractor wanted",
+    "paid help", "for hire", "can someone help", "who can build", "who can fix",
+    "need a developer", "need a freelancer", "need a contractor", "need an expert",
+    "need this built", "need this fixed", "help me automate", "help me integrate",
 )
 NON_BUYER_ARTIFACTS = (
     "roadmap", "master plan", "market & tech review", "research report",
