@@ -26,6 +26,31 @@ class AutonomousOutreachTests(unittest.TestCase):
         base["status"] = "WATCH"
         self.assertFalse(ao.eligible(base))
 
+    def test_qwen_gate_accepts_only_qwen_qualified_urls(self):
+        leads = [
+            {
+                "status": "QUALIFIED",
+                "source": "public_buyer_request",
+                "url": "https://github.com/acme/project/issues/42",
+                "matched_offer": "Workflow Rescue Pilot",
+                "checkout_path": "sales/checkout.html?offer=workflow",
+            },
+            {
+                "status": "QUALIFIED",
+                "source": "public_buyer_request",
+                "url": "https://github.com/KikikJourney/Kikik-Journey/issues/43",
+                "matched_offer": "Workflow Rescue Pilot",
+                "checkout_path": "sales/checkout.html?offer=workflow",
+            },
+        ]
+        qwen = {"results": [{
+            "decision": "QUALIFIED",
+            "source_request": {"url": "https://github.com/KikikJourney/Kikik-Journey/issues/43"},
+        }]}
+        filtered = ao.merge_qualified_leads(leads, qwen)
+        self.assertEqual(len(filtered), 1)
+        self.assertEqual(filtered[0]["url"], "https://github.com/KikikJourney/Kikik-Journey/issues/43")
+
     def test_comment_contains_marker_and_checkout(self):
         lead = {
             "title": "Need workflow automation",
