@@ -115,8 +115,12 @@ def read(url):
         return "", url
     for attempt in range(2):
         try:
-            body, _ = get("https://r.jina.ai/" + clean_url)
-            return body, clean_url
+            domain = urlparse(clean_url).netloc.lower().removeprefix("www.")
+            if domain in {"google.com", "bing.com", "html.duckduckgo.com"}:
+                body, final = get(clean_url)
+            else:
+                body, final = get("https://r.jina.ai/" + clean_url)
+            return body, final
         except (HTTPError, URLError, TimeoutError, UnicodeError, ValueError, InvalidURL):
             if attempt == 0:
                 time.sleep(0.3)
