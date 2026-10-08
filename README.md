@@ -6,7 +6,7 @@ The repository combines a GitHub Actions radar with deterministic scoring, reven
 
 > ## 🛒 Ready to order?
 >
-> **[ORDER NOW — Open the Central Checkout](sales/manual-order.html?source=github-readme)**
+> **[ORDER NOW — Open the Central Checkout](https://kikikjourney.github.io/Kikik-Journey/sales/manual-order.html?source=github-readme)**
 >
 > Choose the product, enter your contact email, select a payment method, and submit the order request from the customer-facing checkout page. **You do not need to read or modify source code to place an order.**
 >
@@ -75,9 +75,9 @@ The public conversion path is:
 
 ### Customer-facing checkout
 
-**[Open the Central Checkout →](sales/manual-order.html?source=github-readme)**
+**[Open the Central Checkout →](https://kikikjourney.github.io/Kikik-Journey/sales/manual-order.html?source=github-readme)**
 
-The central checkout lives at `sales/manual-order.html`. It is a normal customer-facing HTML page, not source code that customers need to understand.
+The central checkout is the live customer-facing order form: https://kikikjourney.github.io/Kikik-Journey/sales/manual-order.html. Customers should use that live page to order; they do not need to open repository source files.
 
 It collects only:
 
