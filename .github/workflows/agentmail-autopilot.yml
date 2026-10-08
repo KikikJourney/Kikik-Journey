@@ -26,8 +26,13 @@ jobs:
           python-version: "3.12"
       - name: Validate
         run: |
-          python -m py_compile workers/email_autopilot.py workers/problem_solving_engine.py workers/autonomous_resolution.py workers/verify_usdt_payment.py
-          python -m unittest tests/test_email_autopilot.py tests/test_problem_solving_engine.py tests/test_autonomous_resolution.py tests/test_verify_usdt_payment.py -v
+          python -m py_compile workers/email_autopilot.py workers/revenue_event_ledger.py workers/problem_solving_engine.py workers/autonomous_resolution.py workers/verify_usdt_payment.py
+          python -m unittest tests/test_email_autopilot.py tests/test_revenue_event_ledger.py tests/test_problem_solving_engine.py tests/test_autonomous_resolution.py tests/test_verify_usdt_payment.py -v
+      - name: Prepare M3 revenue event ledger
+        run: |
+          mkdir -p data
+          test -f data/revenue_events.json || printf '%s\n' '{"events":[]}' > data/revenue_events.json
+
       - name: Process AgentMail
         env:
           AGENTMAIL_API_KEY: ${{ secrets.AGENTMAIL_API_KEY }}
@@ -36,3 +41,11 @@ jobs:
           GITHUB_REPOSITORY: ${{ github.repository }}
           PAYMENT_RECIPIENT: "0x4ce7004e7127f8b2386eb355e088f127c24b3fac"
         run: python workers/email_autopilot.py
+
+      - name: Upload M3 revenue events
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: m3-revenue-events
+          path: data/revenue_events.json
+          if-no-files-found: error
