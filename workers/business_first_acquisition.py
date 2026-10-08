@@ -89,7 +89,7 @@ def make_lead(item, source):
     source_bonus = 10 if source == "public_business_web_signal" else 0
     adjusted = (base + contact_bonus + source_bonus) * feedback_multiplier(offer["name"], source)
     score = min(100, round(adjusted, 2))
-    qualified = explicit and source == "public_business_web_signal"
+    qualified = explicit and source in {"public_business_web_signal", "public_buyer_request"}
     actionable = bool(qualified and item.get("contact_email") and item.get("website") and item.get("evidence") and item.get("commercial_intent", 0) >= 1 and item.get("reachability") == "direct_email")
     return {
         "status": "QUALIFIED" if qualified else "WATCH",
@@ -159,7 +159,7 @@ def main():
 
     output = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "method": "Business-first acquisition with public business signals; direct email is preferred for autonomous outreach and contact pages remain queued for later handling; GitHub is secondary.",
+        "method": "Business-first acquisition with public business signals; GitHub buyer requests remain qualified secondary signals for strict activity/probability outreach.",
         "summary": {
             "total": len(leads),
             "qualified": sum(x["status"] == "QUALIFIED" for x in leads),
@@ -183,7 +183,7 @@ def main():
         f"- Watch: **{output['summary']['watch']}**",
         f"- Reachable business-email leads: **{output['summary']['business_email_leads']}**",
         f"- Auto-contact eligible: **{output['summary']['auto_contact_eligible']}**", "",
-        "> Primary source: public business websites with public contact emails. GitHub buyer requests are secondary.", "",
+        "> Primary source: public business websites with public contact emails. GitHub buyer requests require a separate strict activity/probability gate.", "",
     ]
     for lead in leads[:25]:
         lines += [
