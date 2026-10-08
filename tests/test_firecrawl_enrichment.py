@@ -9,7 +9,8 @@ class FirecrawlEnrichmentTests(unittest.TestCase):
     def test_public_url_rejects_local_destinations(self):
         self.assertFalse(f._public_url("http://localhost:8000/x"))
         self.assertFalse(f._public_url("http://127.0.0.1/x"))
-        self.assertTrue(f._public_url("https://example.com"))
+        with patch.object(f.socket, "getaddrinfo", return_value=[(2, 1, 6, "", ("93.184.216.34", 443))]):
+            self.assertTrue(f._public_url("https://example.com"))
 
     def test_missing_key_is_fail_open(self):
         with tempfile.TemporaryDirectory() as d:
