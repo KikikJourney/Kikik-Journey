@@ -29,7 +29,7 @@ jobs:
           gh workflow run opportunity-radar.yml --repo "${GITHUB_REPOSITORY}" --ref main
           run_id=""
           for i in $(seq 1 30); do
-            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow opportunity-radar.yml --event workflow_dispatch --branch main --limit 20 --json databaseId,createdAt --jq '[.[] | select((.createdAt | fromdateiso8601) >= '"'"'"$dispatch_epoch"'"'"')][0].databaseId // empty')"
+            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow opportunity-radar.yml --event workflow_dispatch --branch main --limit 20 --json databaseId,createdAt --jq "[.[] | select((.createdAt | fromdateiso8601) >= ${dispatch_epoch})][0].databaseId // empty")"
             [ -n "${run_id}" ] && break
             sleep 2
           done
@@ -48,7 +48,7 @@ jobs:
           gh workflow run business-acquisition.yml --repo "${GITHUB_REPOSITORY}" --ref main -f m1_run_id="${M1_RUN_ID}"
           run_id=""
           for i in $(seq 1 30); do
-            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow business-acquisition.yml --event workflow_dispatch --branch main --limit 20 --json databaseId,createdAt --jq '[.[] | select((.createdAt | fromdateiso8601) >= '"'"'"$dispatch_epoch"'"'"')][0].databaseId // empty')"
+            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow business-acquisition.yml --event workflow_dispatch --branch main --limit 20 --json databaseId,createdAt --jq "[.[] | select((.createdAt | fromdateiso8601) >= ${dispatch_epoch})][0].databaseId // empty")"
             [ -n "${run_id}" ] && break
             sleep 2
           done
@@ -66,7 +66,7 @@ jobs:
           gh workflow run agentmail-autopilot.yml --repo "${GITHUB_REPOSITORY}" --ref main
           run_id=""
           for i in $(seq 1 30); do
-            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow agentmail-autopilot.yml --event workflow_dispatch --branch main --limit 20 --json databaseId,createdAt --jq '[.[] | select((.createdAt | fromdateiso8601) >= '"'"'"$dispatch_epoch"'"'"')][0].databaseId // empty')"
+            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow agentmail-autopilot.yml --event workflow_dispatch --branch main --limit 20 --json databaseId,createdAt --jq "[.[] | select((.createdAt | fromdateiso8601) >= ${dispatch_epoch})][0].databaseId // empty")"
             [ -n "${run_id}" ] && break
             sleep 2
           done
