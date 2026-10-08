@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from workers.revenue_feedback import build_feedback
+from workers.revenue_feedback import build_feedback, ingest_event_file
 
 
 class RevenueFeedbackTests(unittest.TestCase):
@@ -24,6 +24,14 @@ class RevenueFeedbackTests(unittest.TestCase):
             self.assertEqual(wc["conversion_rate"], 1.0)
             self.assertGreater(result["policy"]["offer_multipliers"]["WooCommerce → Google Sheets Automation"], 1.0)
             self.assertLess(result["policy"]["offer_multipliers"]["WhatsApp → Google Sheets Mini Automation"], 1.0)
+
+    def test_m3_event_file_feeds_profit_feedback(self):
+        events = [{"event_id": "contact-1", "event_type": "contacted", "source": "agentmail", "offer": "validation", "cost_idr": 0}]
+        m3 = {"events": [{"event_id": "paid-1", "event_type": "paid", "source": "agentmail", "offer": "validation", "amount_idr": 19000, "cost_idr": 0}]}
+        merged = ingest_event_file(m3, events)
+        result = build_feedback(merged)
+        self.assertEqual(result["totals"]["paid_orders"], 1)
+        self.assertEqual(result["totals"]["revenue_idr"], 19000)
 
     def test_duplicate_event_ids_do_not_inflate_metrics(self):
         events = [
