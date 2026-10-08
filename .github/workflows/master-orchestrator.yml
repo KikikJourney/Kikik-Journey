@@ -1,0 +1,37 @@
+name: Zorathvael OS — Master Orchestrator
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+  issues: write
+
+concurrency:
+  group: zorathvael-os-master-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  m1-discover:
+    name: "M1 · Discover & qualify"
+    uses: ./.github/workflows/opportunity-radar.yml
+    secrets: inherit
+
+  m2-acquire:
+    name: "M2 · Qualify & outreach"
+    needs: m1-discover
+    uses: ./.github/workflows/business-acquisition.yml
+    secrets: inherit
+
+  m3-transaction:
+    name: "M3 · Payment, delivery & events"
+    needs: m2-acquire
+    uses: ./.github/workflows/agentmail-autopilot.yml
+    secrets: inherit
+
+  m4-feedback:
+    name: "M4 · Profit feedback"
+    needs: m3-transaction
+    uses: ./.github/workflows/m4-profit-feedback.yml
+    secrets: inherit
