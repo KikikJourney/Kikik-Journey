@@ -7,7 +7,8 @@ import re
 import time
 from urllib.parse import quote_plus, urljoin, urlparse
 from urllib.request import Request, urlopen
-from urllib.error import HTTPError, URLError, InvalidURL
+from urllib.error import HTTPError, URLError
+from http.client import InvalidURL
 
 LIMIT = int(os.getenv("KJ_BUSINESS_DISCOVERY_LIMIT", "12"))
 SEARCH_TIMEOUT = int(os.getenv("KJ_DISCOVERY_TIMEOUT_SECONDS", "8"))
