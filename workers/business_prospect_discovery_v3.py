@@ -14,6 +14,7 @@ LIMIT = int(os.getenv("KJ_BUSINESS_DISCOVERY_LIMIT", "12"))
 SEARCH_TIMEOUT = int(os.getenv("KJ_DISCOVERY_TIMEOUT_SECONDS", "8"))
 UA = "KikikJourney-BusinessProspector/2.2"
 MAX_PER_DOMAIN = int(os.getenv("KJ_MAX_PROSPECTS_PER_DOMAIN", "4"))
+MAX_CANDIDATES_PER_QUERY = int(os.getenv("KJ_MAX_CANDIDATES_PER_QUERY", "24"))
 
 QUERIES = [
     '"need help" automation "google sheets" ecommerce -github -fiverr -upwork',
@@ -182,7 +183,7 @@ def search(query):
                 continue
             seen.add(canonical.lower())
             found.append({"title": html.unescape(title), "url": canonical})
-            if len(found) >= 16:
+            if len(found) >= MAX_CANDIDATES_PER_QUERY:
                 return found
     return found
 
