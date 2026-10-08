@@ -2,7 +2,7 @@
 
 Kikik Journey is an execution-oriented opportunity discovery, validation, customer-acquisition, and small-business automation repository.
 
-The repository combines a GitHub Actions radar with deterministic scoring, revenue packaging, buyer-request qualification, a Qwen second-pass worker, lightweight sales pages, payment configuration, and validation tests.
+The repository combines a GitHub Actions radar with deterministic scoring, revenue packaging, buyer-request qualification, a Qwen second-pass worker, central checkout, payment verification, AgentMail delivery, profit feedback, and validation tests.
 
 > ## 🛒 Ready to order?
 >
@@ -20,7 +20,7 @@ The repository combines a GitHub Actions radar with deterministic scoring, reven
 
 The repository is organized as a closed acquisition-to-profit loop. Generated evidence is treated as evidence, not as proof of customers or revenue.
 
-## What the repository does
+## One-click orchestration\n\nFor a full manual operating cycle, use **`Zorathvael OS — Master Orchestrator`** in GitHub Actions. It is the single manual entry point and runs the milestones in order:\n\n`M1 DISCOVER → M2 QUALIFY/ACQUIRE → M3 PAYMENT/DELIVERY → M4 PROFIT FEEDBACK`\n\nEach milestone remains an independent reusable workflow with its own logs and validation. Scheduled workflows continue to operate independently, so the orchestrator is specifically for a deliberate full-cycle manual run.\n\n## What the repository does
 
 ### 1. M1 — Opportunity Radar
 
@@ -98,7 +98,7 @@ For verified USDT payments:
 - a `delivered` event is emitted;
 - M4 consumes the revenue events.
 
-QRIS and Dana may be displayed as payment methods, but the automation does not invent merchant-side confirmation. Those orders remain pending until an independent verification path exists.
+The automated central checkout currently accepts **USDT on BNB Smart Chain (BEP-20)** only. QRIS and Dana are not offered there because the system has no independent merchant-side verification path for them.
 
 No passwords, OTPs, API keys, seed phrases, private keys, or full credentials are collected through the order flow.
 
