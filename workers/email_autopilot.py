@@ -32,10 +32,10 @@ GITHUB_REPO = os.getenv("GITHUB_REPOSITORY", "KikikJourney/Kikik-Journey")
 PAYMENT_RECIPIENT = os.getenv("PAYMENT_RECIPIENT", "0x4ce7004e7127f8b2386eb355e088f127c24b3fac")
 VALIDATION_KIT_URL = "https://github.com/KikikJourney/Kikik-Journey/tree/main/products/ai-opportunity-validation-kit"
 OFFERS = {
-    "woocommerce": ("WooCommerce → Google Sheets pilot", Decimal("5"), 399000),
-    "whatsapp": ("WhatsApp → Google Sheets mini automation", Decimal("2.5"), 199000),
-    "workflow": ("Workflow Rescue Pilot", Decimal("3"), 250000),
-    "validation": ("AI Opportunity Validation Kit", Decimal("0.25"), 19000),
+    "woocommerce": ("WooCommerce → Google Sheets pilot", Decimal("22.30"), 399000),
+    "whatsapp": ("WhatsApp → Google Sheets mini automation", Decimal("11.12"), 199000),
+    "workflow": ("Workflow Rescue Pilot", Decimal("13.97"), 250000),
+    "validation": ("AI Opportunity Validation Kit", Decimal("1.06"), 19000),
 }
 
 def api(path, method="GET", payload=None):
