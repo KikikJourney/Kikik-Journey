@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-08T11:22:55.286336+00:00",
+  "generated_at": "2026-10-08T11:25:47.824969+00:00",
   "totals": {
     "events": 0,
     "contacted": 0,
@@ -13,13 +13,17 @@
     "cost_idr": 0,
     "net_revenue_idr": 0,
     "profit_idr": 0,
+    "reply_rate": 0.0,
+    "qualified_rate": 0.0,
+    "paid_from_replied_rate": 0.0,
+    "paid_from_qualified_rate": 0.0,
     "conversion_rate": 0.0
   },
   "offers": {},
   "sources": {},
   "policy": {
     "version": 1,
-    "generated_at": "2026-10-08T11:22:55.286336+00:00",
+    "generated_at": "2026-10-08T11:25:47.824969+00:00",
     "principle": "Outcome data changes prioritization; it never bypasses buyer-intent, compliance, Qwen, deduplication, or outreach caps.",
     "offer_multipliers": {},
     "source_multipliers": {},
