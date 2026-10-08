@@ -136,7 +136,10 @@ def process_payment(mid,text,order=None):
     if not h:return {"status":"payment_missing_tx","ref":p_ref}
     result=verify_payment(h,amount,PAYMENT_RECIPIENT)
     if not result.get("ok"):
-        return {"status":"payment_rejected","ref":p_ref}
+        status=result.get("status")
+        if status=="insufficient_confirmations":
+            return {"status":"insufficient_confirmations","ref":p_ref,"verification":result}
+        return {"status":"payment_rejected","ref":p_ref,"verification":result}
     existing=github_find(p_ref)
     body=f"Order reference: {p_ref}\nStatus: PAID\nOffer: {order['offer']}\nSource: {order['source']}\nTX hash: {h}\nAmount: {amount} USDT\nRecipient: {PAYMENT_RECIPIENT}\nVerification: {json.dumps(result,sort_keys=True)}"
     if existing:github_update(existing["number"],f"[ORDER PAID] {p_ref} — {OFFERS[order['offer']][0]}",body)
