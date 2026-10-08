@@ -23,7 +23,7 @@ CHECKOUT = os.getenv(
     "CHECKOUT_BASE_URL",
     "https://kikikjourney.github.io/Kikik-Journey/sales/manual_order.html",
 )
-TOKEN = os.getenv("GITHUB_OUTREACH_TOKEN") or os.getenv("GITHUB_TOKEN")
+TOKEN = os.getenv("GITHUB_OUTREACH_TOKEN")
 MARKER = "<!-- kikik-journey-github-outreach:v2 -->"
 INTENT = ("need help", "need someone", "looking for", "need a developer", "hire",
           "hiring", "paid help", "who can build", "who can fix", "help me automate",
