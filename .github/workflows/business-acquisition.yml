@@ -19,8 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Discover public business prospects
@@ -65,8 +65,8 @@ jobs:
     needs: discover
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - uses: actions/download-artifact@v4
@@ -78,12 +78,20 @@ jobs:
       - name: Start Qwen worker
         run: |
           nohup llama serve -hf ggml-org/Qwen3-1.7B-GGUF:Q4_K_M --host 127.0.0.1 --port 8080 > worker.log 2>&1 &
+          ready=0
           for i in $(seq 1 60); do
-            if curl -fsS http://127.0.0.1:8080/health >/dev/null; then exit 0; fi
+            if curl -fsS http://127.0.0.1:8080/health >/dev/null && curl -fsS http://127.0.0.1:8080/v1/models >/dev/null; then
+              ready=1
+              break
+            fi
             sleep 2
           done
-          cat worker.log
-          exit 1
+          if [ "$ready" -ne 1 ]; then
+            echo "Qwen worker did not become ready within 120s."
+            cat worker.log
+            exit 1
+          fi
+          echo "Qwen worker ready."
       - name: Qualify top business prospects
         run: |
           python workers/batch_prospect_worker.py             --input input/business_first_report.json             --output worker_prospect_queue.json             --limit 3
@@ -104,7 +112,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/download-artifact@v4
         with:
           name: business-acquisition-queue
