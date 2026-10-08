@@ -60,6 +60,12 @@ jobs:
           mkdir -p input
           test -f input/outreach_report.json || printf '%s\n' '{"contacted_leads":[]}' > input/outreach_report.json
           test -f input/revenue_events.json || printf '%s\n' '{"events":[]}' > input/revenue_events.json
+      - name: Normalize M3/M2 inputs
+        run: |
+          mkdir -p input
+          test -f input/outreach_report.json || printf '%s\n' '{"contacted_leads":[]}' > input/outreach_report.json
+          test -f input/revenue_events.json || printf '%s\n' '{"events":[]}' > input/revenue_events.json
+
       - name: Validate and build profit policy
         run: |
           python -m py_compile workers/revenue_feedback.py workers/business_first_acquisition.py
