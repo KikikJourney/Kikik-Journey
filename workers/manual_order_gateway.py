@@ -23,7 +23,9 @@ GITHUB_TOKEN=os.getenv("GITHUB_TOKEN")
 GITHUB_REPO=os.getenv("GITHUB_REPOSITORY","KikikJourney/Kikik-Journey")
 PAYMENT_RECIPIENT=os.getenv("PAYMENT_RECIPIENT","0x4ce7004e7127f8b2386eb355e088f127c24b3fac")
 VALIDATION_KIT_URL="https://github.com/KikikJourney/Kikik-Journey/tree/main/products/ai-opportunity-validation-kit"
-OFFERS={"woocommerce":("WooCommerce → Google Sheets pilot",Decimal("5"),399000),"whatsapp":("WhatsApp → Google Sheets mini automation",Decimal("2.5"),199000),"workflow":("Workflow Rescue Pilot",Decimal("3"),250000),"validation":("AI Opportunity Validation Kit",Decimal("0.25"),19000)}
+# USDT quotes are derived from the current IDR price at the checkout quote rate (1 USDT ≈ Rp17,892.10).
+# IDR remains the authoritative offer price; these amounts are the verification quote until refreshed.
+OFFERS={"woocommerce":("WooCommerce → Google Sheets pilot",Decimal("22.30"),399000),"whatsapp":("WhatsApp → Google Sheets mini automation",Decimal("11.12"),199000),"workflow":("Workflow Rescue Pilot",Decimal("13.97"),250000),"validation":("AI Opportunity Validation Kit",Decimal("1.06"),19000)}
 EMAIL_RE=re.compile(r"\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b",re.I)
 
 def api(path,method="GET",payload=None,query=None):
