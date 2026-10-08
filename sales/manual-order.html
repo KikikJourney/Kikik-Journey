@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kikik Journey — Manual Order</title>
+<style>
+body{font-family:system-ui,-apple-system,sans-serif;max-width:860px;margin:auto;padding:24px 16px;line-height:1.55;background:#fafafa;color:#171717}
+.card{background:#fff;border:1px solid #ddd;border-radius:18px;padding:22px;margin:16px 0}
+label{display:block;font-weight:700;margin:14px 0 6px}
+input,select,textarea{box-sizing:border-box;width:100%;padding:12px;border:1px solid #bbb;border-radius:10px;font:inherit}
+textarea{min-height:110px;resize:vertical}.price{font-size:30px;font-weight:800}
+button{border:0;border-radius:10px;padding:13px 18px;background:#111;color:#fff;font-weight:800;font:inherit;cursor:pointer}
+.muted{color:#666}.small{font-size:13px}.warn{background:#fff7e6;border-color:#e5c77a}
+#result{white-space:pre-wrap;word-break:break-word}
+</style>
+</head>
+<body>
+<p class="muted">Kikik Journey · Manual Order</p>
+<h1>Order directly</h1>
+<p>Choose an offer, enter the email that should receive payment confirmation and delivery, then send the generated order email to our automated AgentMail sales inbox.</p>
+
+<div class="card">
+<label for="offer">Offer</label>
+<select id="offer">
+<option value="woocommerce">WooCommerce → Google Sheets pilot — Rp399.000 / 5 USDT</option>
+<option value="whatsapp">WhatsApp → Google Sheets mini automation — Rp199.000 / 2.5 USDT</option>
+<option value="workflow">Workflow Rescue Pilot — Rp250.000 / 3 USDT</option>
+<option value="validation">AI Opportunity Validation Kit — Rp19.000 / 0.25 USDT</option>
+</select>
+<p id="scope" class="muted"></p>
+<p id="price" class="price"></p>
+</div>
+
+<div class="card">
+<label for="email">Contact email <span class="small">(required)</span></label>
+<input id="email" type="email" autocomplete="email" placeholder="you@example.com" required>
+<label for="name">Name <span class="small">(optional)</span></label>
+<input id="name" autocomplete="name" placeholder="Your name">
+<label for="notes">Project / delivery notes <span class="small">(optional)</span></label>
+<textarea id="notes" placeholder="Describe the non-sensitive result you want. Do not include passwords, OTPs, API keys, seed phrases, or private keys."></textarea>
+</div>
+
+<div class="card">
+<h2>Payment</h2>
+<label for="payment">Preferred method</label>
+<select id="payment">
+<option value="USDT">USDT — BNB Smart Chain (BEP-20)</option>
+<option value="QRIS">QRIS</option>
+<option value="Dana">Dana</option>
+</select>
+<p class="muted">The automated AgentMail flow will return the exact payment instructions. USDT is independently verified on-chain before an order is marked PAID. QRIS/Dana remain pending until merchant-side payment verification is available.</p>
+</div>
+
+<div class="card">
+<button id="order">Create order email</button>
+<p id="result" class="small"></p>
+</div>
+
+<div class="card warn">
+<strong>Security:</strong> never send passwords, OTPs, API keys, seed phrases, private keys, or full credentials. Only send the non-sensitive information needed to deliver the selected scope.
+</div>
+
+<script>
+const source=(new URLSearchParams(location.search).get('source')||'direct').trim().toLowerCase().replace(/[^a-z0-9._-]/g,'').slice(0,40)||'direct';
+const offers={
+woocommerce:{name:'WooCommerce → Google Sheets pilot',idr:'Rp399.000',usdt:'5',scope:'One WooCommerce store → one Google Sheet workflow.'},
+whatsapp:{name:'WhatsApp → Google Sheets mini automation',idr:'Rp199.000',usdt:'2.5',scope:'One message workflow → one Google Sheet.'},
+workflow:{name:'Workflow Rescue Pilot',idr:'Rp250.000',usdt:'3',scope:'One narrow workflow audit plus implementation/prototype or documented automation path.'},
+validation:{name:'AI Opportunity Validation Kit',idr:'Rp19.000',usdt:'0.25',scope:'Digital validation kit for evidence, scoring and paid-pilot packaging.'}
+};
+const offer=document.getElementById('offer'),scope=document.getElementById('scope'),price=document.getElementById('price');
+function refresh(){const o=offers[offer.value];scope.textContent=o.scope;price.textContent=o.idr+' · '+o.usdt+' USDT';}
+offer.addEventListener('change',refresh);refresh();
+document.getElementById('order').addEventListener('click',()=>{
+ const email=document.getElementById('email').value.trim().toLowerCase();
+ if(!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){document.getElementById('result').textContent='Enter a valid contact email.';return;}
+ const o=offers[offer.value], name=document.getElementById('name').value.trim().slice(0,120), notes=document.getElementById('notes').value.trim().slice(0,2000);
+ const ref='KJ-MANUAL-'+Date.now().toString(36).toUpperCase();
+ const body=[
+ 'MANUAL ORDER',
+ 'Order reference: '+ref,
+ 'Offer: '+offer.value,
+ 'Contact email: '+email,
+ 'Name: '+name,
+ 'Payment method: '+document.getElementById('payment').value,
+ 'Source: '+source,
+ 'Requested offer price: '+o.idr+' / '+o.usdt+' USDT',
+ 'Project notes: '+(notes||'(none)'),
+ '',
+ 'I understand that payment is independently verified before the order is marked PAID.',
+ 'I will not send passwords, OTPs, API keys, seed phrases, private keys, or other sensitive credentials.'
+ ].join('\n');
+ const subject=encodeURIComponent('KJ MANUAL ORDER '+ref+' — '+o.name);
+ const href='mailto:kikikjourney@agentmail.to?subject='+subject+'&body='+encodeURIComponent(body);
+ document.getElementById('result').textContent='Opening your email client with order '+ref+'…';
+ window.location.href=href;
+});
+</script>
+</body>
+</html>
