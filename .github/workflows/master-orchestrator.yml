@@ -50,6 +50,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          dispatch_started="$(date -u +%s)"
+          echo "dispatch_started=${dispatch_started}" >> "${GITHUB_OUTPUT}"
           gh workflow run agentmail-autopilot.yml --repo "${GITHUB_REPOSITORY}" --ref main
           sleep 3
           run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow agentmail-autopilot.yml --event workflow_dispatch --branch main --limit 1 --json databaseId --jq '.[0].databaseId')"
@@ -61,11 +63,12 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           M3_RUN_ID: ${{ steps.m3.outputs.run_id }}
+          M3_DISPATCH_STARTED: ${{ steps.m3.outputs.dispatch_started }}
         run: |
           set -euo pipefail
           echo "Waiting for M4 to consume successful M3 run ${M3_RUN_ID}..."
           for i in $(seq 1 60); do
-            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow m4-profit-feedback.yml --limit 20 --json databaseId,event,conclusion,status --jq '[.[] | select(.event=="workflow_run") | select(.status=="completed")][0].databaseId // empty')"
+            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow m4-profit-feedback.yml --limit 30 --json databaseId,event,conclusion,status,createdAt --jq --argjson started "${M3_DISPATCH_STARTED}" '[.[] | select(.event=="workflow_run") | select(.status=="completed") | select((.createdAt | fromdateiso8601) >= $started)][0].databaseId // empty')"
             if [ -n "${run_id}" ]; then
               conclusion="$(gh run view "${run_id}" --repo "${GITHUB_REPOSITORY}" --json conclusion --jq '.conclusion')"
               echo "M4 run ${run_id}: ${conclusion}"
