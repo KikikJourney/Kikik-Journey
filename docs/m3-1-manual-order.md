@@ -2,9 +2,9 @@
 
 ## Flow
 
-Social/repository traffic → manual-order.html → AgentMail → order_created → payment verification → PAID → AgentMail delivery → M4 profit feedback
+Social/repository traffic → manual-order.html → payment verification → PAID → AgentMail delivery → M4 profit feedback
 
-The public page collects a required contact email. The email is used for automated confirmation and delivery; it is not stored in the public GitHub order record.
+The public page collects a required contact email. Manual order creation is an order intake step only. Payment verification is the gate to PAID. AgentMail is used only for customer email delivery after payment verification; it is not the payment verifier.
 
 ## Attribution
 
