@@ -3,6 +3,9 @@ name: Deploy site
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "data/**"
+      - "profit_report.json"
   workflow_dispatch:
 
 permissions:
