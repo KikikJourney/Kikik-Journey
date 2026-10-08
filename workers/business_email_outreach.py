@@ -12,6 +12,7 @@ MAX_PER_RUN = int(os.getenv("KJ_MAX_OUTREACH_PER_RUN", "3"))
 AGENTMAIL_API = "https://api.agentmail.to/v0"
 INBOX = os.getenv("AGENTMAIL_INBOX_EMAIL", "kikikjourney@agentmail.to")
 TOKEN = os.getenv("AGENTMAIL_API_KEY")
+POSTAL_ADDRESS = os.getenv("KJ_POSTAL_ADDRESS", "").strip()
 MARKER = "Kikik Journey — fixed-scope automation pilot"
 
 def api(path, method="GET", payload=None, query=None):
@@ -59,6 +60,7 @@ def eligible(lead):
         and bool(lead.get("matched_offer"))
         and bool(lead.get("checkout_path"))
         and bool(lead.get("website"))
+        and bool(POSTAL_ADDRESS)
     )
 
 def email_body(lead):
@@ -71,9 +73,11 @@ def email_body(lead):
         f"The scope is: {lead['scope']}\n\n"
         f"If this is still a live problem, you can review the exact scope here:\n"
         f"https://kikikjourney.github.io/Kikik-Journey/{lead['checkout_path']}\n\n"
-        "No call is required to start. If it is not relevant, just reply STOP and I will not follow up. "
+        "This is a commercial outreach message from Kikik Journey. No call is required to start. " 
+        "If it is not relevant, just reply STOP and I will not follow up. "
         "Please do not send passwords, OTPs, API keys, seed phrases, or other private credentials by email.\n\n"
-        "Kikik Journey"
+        "Kikik Journey\n"
+        f"{POSTAL_ADDRESS}"
     )
 
 def send_one(lead):
@@ -136,7 +140,8 @@ def main():
         "max_per_run": MAX_PER_RUN,
         "results": results,
         "qwen_gate_enabled": bool(qwen_data.get("results")),
-        "policy": "Business-first public-web prospects only; public business email; one-to-one; deduplicated by AgentMail recipient history; capped per run; STOP honored; no credential collection.",
+        "policy": "Business-first public-web prospects only; public business email; one-to-one; deduplicated by AgentMail recipient history; capped per run; STOP honored; no credential collection; physical-address compliance gate.",
+        "compliance_gate": "blocked_without_KJ_POSTAL_ADDRESS",
     }
     open(args.report, "w", encoding="utf-8").write(json.dumps(report, indent=2))
     print(json.dumps(report, indent=2))
