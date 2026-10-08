@@ -152,6 +152,9 @@ def main():
             elif already_contacted(repo, issue):
                 report["skipped"]["already_contacted"] = report["skipped"].get("already_contacted", 0) + 1
                 attempt["status"] = "already_contacted"
+            elif not TOKEN:
+                report["skipped"]["missing_write_token"] = report["skipped"].get("missing_write_token", 0) + 1
+                attempt["status"] = "skipped_missing_write_token"
             else:
                 api(f"https://api.github.com/repos/{repo}/issues/{issue}/comments", "POST",
                     {"body": comment_body(lead, checkout_url(lead, repo, issue))})
