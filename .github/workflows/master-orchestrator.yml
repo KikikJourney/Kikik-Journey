@@ -1,7 +1,9 @@
 name: Zorathvael OS — Master Orchestrator
+run-name: "Zorathvael OS — M1 → M2 → M3 → M4 #${{ github.run_number }}"
 
 on:
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   actions: write
