@@ -266,8 +266,8 @@ def inspect(item, query):
 
     found = sorted(set(found))
     return {
-        "source": "public_business_buyer_signal",
-        "source_type": "public_business_buyer_signal",
+        "source": "public_business_web_signal",
+        "source_type": "public_business_web_signal",
         "title": item.get("title") or urlparse(final).netloc,
         "website": final,
         "contact_email": found[0] if found else "",
@@ -287,6 +287,12 @@ def inspect(item, query):
         ),
         "reachability": "direct_email" if found else (
             "contact_form_or_contact_page" if contact_url else "unresolved"
+        ),
+        "actionable": bool(found) and intent_hits >= 1 and pain_hits >= 1 and offer_hits >= 1,
+        "actionability_reason": (
+            "direct public business email + explicit intent + pain + offer fit"
+            if found and intent_hits >= 1 and pain_hits >= 1 and offer_hits >= 1
+            else "missing direct email or explicit intent/pain/offer evidence"
         ),
         "discovery_query": query,
     }
@@ -316,6 +322,8 @@ def main():
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "method": "Public buyer/request signals via Jina Reader plus public business contact enrichment; no credentials.",
         "count": len(prospects),
+        "actionable_count": sum(bool(x.get("actionable")) for x in prospects[:LIMIT]),
+        "direct_email_count": sum(bool(x.get("contact_email")) for x in prospects[:LIMIT]),
         "prospects": prospects[:LIMIT],
         "warning": "Public business signals are lead signals, not consent or sales. Outreach remains one-to-one, bounded and opt-out aware.",
     }
