@@ -161,8 +161,7 @@ def main():
             subject=(item.get("subject") or "").upper()
             if "MANUAL ORDER" not in subject and "KJ-MANUAL-" not in subject:
                 continue
-            d=load_detail(mid); text="
-".join(str(d.get(k,"")) for k in ("subject","extracted_text","text"))
+            d=load_detail(mid); text="\\n".join(str(d.get(k,"")) for k in ("subject","extracted_text","text"))
             kind="manual_order" if "manual order" in text.lower() else ("payment" if ref(text) else "")
             if kind=="manual_order":status=process_order(mid,text); mark(mid,"manual-order")
             elif kind=="payment":status=process_payment(mid,text); mark(mid,"manual-payment")
