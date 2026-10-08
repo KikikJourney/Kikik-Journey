@@ -1,36 +1,22 @@
 <!doctype html>
-<html lang="id">
+<html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI Opportunity Lab — Direct Checkout</title>
-<style>body{font-family:system-ui;max-width:860px;margin:auto;padding:28px 18px;line-height:1.55;background:#fafafa;color:#171717}.card{background:#fff;border:1px solid #ddd;border-radius:18px;padding:24px;margin:18px 0}.price{font-size:34px;font-weight:800}.qr{max-width:320px;width:100%;display:block;margin:18px auto;border-radius:12px;border:1px solid #ddd}.cta{display:inline-block;border-radius:10px;padding:13px 18px;background:#111;color:#fff;text-decoration:none;font-weight:700}.muted{color:#666}.small{font-size:13px}.hidden{display:none}</style>
-</head>
-<body>
-<p class="muted">AI Opportunity Lab · Direct checkout</p>
-<h1 id="title">Direct service checkout</h1>
-<p id="desc">Fixed-scope pilot with direct payment.</p>
-<div class="card"><div id="price" class="price">Rp399.000</div><p id="product">Automation pilot</p></div>
-<div class="card"><h2>Pay with QRIS</h2><p>Scan the merchant QRIS and pay <strong id="amount">Rp399.000</strong>.</p><img id="qris" class="qr" src="../assets/qris.svg" alt="Kikik Journey QRIS"><p id="fallback" class="muted hidden">QRIS is not configured yet.</p><p class="small muted">Verify the merchant name and amount before confirming.</p></div>
-<div class="card"><h2>Pay with USDT</h2><p><strong>Network:</strong> BNB Smart Chain (BEP-20)</p><p><strong>USDT amount:</strong> <strong id="usdtAmount">5 USDT</strong></p><p><strong>Address:</strong></p><code>0x4ce7004e7127f8b2386eb355e088f127c24b3fac</code><p class="small muted">Send exactly the displayed USDT amount through BNB Smart Chain / BEP-20. After payment, reply with the transaction hash and your order reference. The system verifies the payment on-chain before marking the order paid.</p></div>
-<div class="card"><h2>Other payment option</h2><p>Direct payment through <strong>Dana</strong> is also accepted. Request the current Dana payment details through the agreed confirmation channel.</p></div>
-<div class="card"><h2>After payment</h2><ol><li>Keep the successful transaction reference.</li><li>Send the reference through the agreed confirmation channel.</li><li>Send only the non-sensitive project details needed for the pilot.</li><li>Payment is verified before implementation starts.</li></ol><p class="small muted">Never send passwords, OTPs, API keys or private credentials.</p></div>
-<div class="card"><a class="cta" href="https://github.com/KikikJourney/Kikik-Journey/issues/new">Open implementation intake</a></div>
+<meta http-equiv="refresh" content="0; url=manual-order.html">
+<title>Kikik Journey — Checkout</title>
 <script>
 const p=new URLSearchParams(location.search);
-const kind=p.get('offer')||'woocommerce';
-const offers={
-woocommerce:{title:'WooCommerce → Google Sheets pilot',price:'Rp399.000',usdt:'5',desc:'One WooCommerce store → one Google Sheet workflow with field mapping, webhook/API ingestion, duplicate protection and testing.'},
-whatsapp:{title:'WhatsApp → Google Sheets mini automation',price:'Rp199.000',usdt:'2.5',desc:'One message workflow → one Google Sheet with agreed message format and one revision.'},
-validation:{title:'AI Opportunity Validation Kit',price:'Rp19.000',usdt:'0.25',desc:'Digital validation kit for scoring, evidence gathering and paid-pilot packaging.'},
-'woocommerce-image':{title:'WooCommerce → Google Sheets image-link enhancement',price:'Rp199.000',usdt:'2.5',desc:'One focused enhancement: export each WooCommerce product image URL into the Google Sheets output, with field mapping and a test run.'}
-};
-const o=offers[kind]||offers.woocommerce;
-document.getElementById('title').textContent=o.title;
-document.getElementById('desc').textContent=o.desc;
-document.getElementById('price').textContent=o.price;
-document.getElementById('amount').textContent=o.price;
-document.getElementById('product').textContent=o.title;
-document.getElementById('usdtAmount').textContent=(o.usdt||'5')+' USDT';
+const target=new URL("manual-order.html",location.href);
+for(const [k,v] of p) target.searchParams.set(k,v);
+target.searchParams.set("source",p.get("source")||"legacy-checkout");
+location.replace(target.href);
+</script>
+</head>
+<body>
+<p>Redirecting to the Central Checkout…</p>
+<p><a id="link" href="manual-order.html">Continue to Central Checkout</a></p>
+<script>
+document.getElementById("link").href=new URL("manual-order.html"+location.search,location.href).href;
 </script>
 </body>
 </html>
