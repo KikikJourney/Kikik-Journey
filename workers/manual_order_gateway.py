@@ -7,8 +7,14 @@ import urllib.request
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from workers.revenue_event_ledger import append_events
-from workers.verify_usdt_payment import verify_payment
+try:
+    from workers.revenue_event_ledger import append_events
+except ModuleNotFoundError:
+    from revenue_event_ledger import append_events
+try:
+    from workers.verify_usdt_payment import verify_payment
+except ModuleNotFoundError:
+    from verify_usdt_payment import verify_payment
 
 API="https://api.agentmail.to/v0"
 INBOX=os.getenv("AGENTMAIL_INBOX_EMAIL","kikikjourney@agentmail.to")
