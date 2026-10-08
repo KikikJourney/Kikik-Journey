@@ -189,7 +189,7 @@ jobs:
           path: input/qwen
       - name: Evaluate strict GitHub opportunities and outreach
         env:
-          GITHUB_OUTREACH_TOKEN: ${{ secrets.GITHUB_OUTREACH_TOKEN }}
+          AGENT_OUTREACH_API: ${{ secrets.AGENT_OUTREACH_API }}
           KJ_GITHUB_MAX_OUTREACH_PER_RUN: "1"
           KJ_GITHUB_MIN_OUTREACH_SCORE: "80"
           KJ_GITHUB_ACTIVE_DAYS: "90"
