@@ -52,7 +52,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download M3 revenue events from completed workflow
-        if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Autonomous AgentMail Sales Inbox' }}
+        if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.name == 'M3 · AgentMail Transaction & Delivery Engine' }}
         uses: actions/download-artifact@v5
         with:
           name: m3-revenue-events
