@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
   schedule:
     - cron: "17 */6 * * *"
 
@@ -120,4 +121,3 @@ jobs:
           path: |
             worker_prospect_queue.json
             worker.log
-
