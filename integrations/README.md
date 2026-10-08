@@ -9,7 +9,8 @@ This repository is the execution control plane for opportunity discovery, qualif
 | GitHub | Source of truth, issues, code, workflows, artifacts | Native GitHub Actions + repository files |
 | AI Vibe Prospecting | Business/prospect discovery, buying-intent enrichment, decision-maker discovery | External discovery input; never store secrets |
 | AgentMail | One-to-one outbound email and inbound response handling | External execution; write only normalized lead/outcome data back to repo |
-| Browser automation | Public-web research and user-directed workflows where a browser is required | External execution; no credential harvesting or bypasses |
+| Firecrawl | Public business-web evidence enrichment for actionable prospects | Optional GitHub Actions evidence layer; never changes score/qualification |
+| | Browser automation | Public-web research and user-directed workflows where a browser is required | External execution; no credential harvesting or bypasses |
 | ChatGPT | Reasoning, qualification, offer matching, message generation, QA | Human/agent decision layer |
 
 ## Operating loop
@@ -49,3 +50,4 @@ Prices are current offer configuration, not revenue guarantees.
 - No payment is marked received without evidence from an available payment/account integration.
 - No customer is marked won merely because an email was sent.
 - External AI model APIs are not required by the repository radar.
+

@@ -1,0 +1,35 @@
+name: Integration Validation
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "workers/firecrawl_enrichment.py"
+      - "tests/test_firecrawl_enrichment.py"
+      - ".github/workflows/opportunity-radar.yml"
+      - ".github/workflows/integration-validation.yml"
+  pull_request:
+    paths:
+      - "workers/firecrawl_enrichment.py"
+      - "tests/test_firecrawl_enrichment.py"
+      - ".github/workflows/opportunity-radar.yml"
+      - ".github/workflows/integration-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  firecrawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Compile Firecrawl integration
+        run: python -m py_compile workers/firecrawl_enrichment.py
+      - name: Run Firecrawl unit tests
+        run: python -m unittest tests/test_firecrawl_enrichment.py -v
+      - name: Validate Firecrawl workflow contract
+        run: python -c 'from pathlib import Path; w=Path("workers/firecrawl_enrichment.py").read_text(); y=Path(".github/workflows/opportunity-radar.yml").read_text(); r=["FIRECRAWL_API_KEY","firecrawl_report.json"]; q=["FIRECRAWL_API_KEY: $"+"{{ secrets.FIRECRAWL_API_KEY }}","python workers/firecrawl_enrichment.py","firecrawl_report.json"]; m=[x for x in r if x not in w]+[x for x in q if x not in y]; raise SystemExit("missing Firecrawl contract: "+", ".join(m)) if m else print("Firecrawl workflow contract ok")'

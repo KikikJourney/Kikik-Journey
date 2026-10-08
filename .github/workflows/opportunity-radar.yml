@@ -41,6 +41,13 @@ jobs:
         run: python opportunity_packager.py
       - name: Discover business prospects
         run: python workers/business_prospect_discovery_v3.py
+      - name: Enrich actionable prospects with Firecrawl evidence
+        env:
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+          FIRECRAWL_API_URL: ${{ secrets.FIRECRAWL_API_URL }}
+          KJ_FIRECRAWL_LIMIT: "6"
+          KJ_FIRECRAWL_TIMEOUT_SECONDS: "30"
+        run: python workers/firecrawl_enrichment.py
       - name: Build business-first customer acquisition queue
         run: python workers/business_first_acquisition.py
       - name: Validate radar outputs
@@ -52,7 +59,7 @@ jobs:
           python -m json.tool customer_leads.json >/dev/null
           python -m json.tool integrations/prospect_queue.json >/dev/null
           python -m json.tool integrations/prospect_queue.schema.json >/dev/null
-          python -m py_compile opportunity_radar.py opportunity_packager.py workers/business_prospect_discovery_v3.py workers/business_first_acquisition.py workers/business_email_outreach.py
+          python -m py_compile opportunity_radar.py opportunity_packager.py workers/business_prospect_discovery_v3.py workers/firecrawl_enrichment.py workers/business_first_acquisition.py workers/business_email_outreach.py
           python -m unittest discover -s tests -p "test_*.py" -v
           test -s validation_cards.md
           test -s customer_acquisition.md
@@ -77,6 +84,7 @@ jobs:
             customer_acquisition.md
             business_prospects.json
             business_first_report.json
+            firecrawl_report.json
       - name: Upload plugin bridge queue
         uses: actions/upload-artifact@v4
         with:
