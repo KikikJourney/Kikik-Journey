@@ -20,8 +20,6 @@ The repository combines a GitHub Actions radar with deterministic scoring, reven
 
 The repository is organized as a closed acquisition-to-profit loop. Generated evidence is treated as evidence, not as proof of customers or revenue.
 
-This repository is deliberately separate from [Crypto-Scanner](https://github.com/KikikJourney/Crypto-Scanner).
-
 ## What the repository does
 
 ### 1. M1 — Opportunity Radar
