@@ -18,6 +18,9 @@ class GitHubOutreachTests(unittest.TestCase):
         base.update(extra)
         return base
 
+    def test_default_outreach_cap_is_three(self):
+        self.assertEqual(go.MAX_PER_RUN, 3)
+
     def test_ineligible_source_is_skipped(self):
         self.assertFalse(go.eligible(self.lead(source="public_business_web_signal")))
 
