@@ -16,6 +16,17 @@ class BusinessFirstAcquisitionTests(unittest.TestCase):
         self.assertEqual(lead["status"], "QUALIFIED")
         self.assertTrue(lead["auto_contact_eligible"])
 
+    def test_github_buyer_request_is_qualified_but_not_email_auto_contact(self):
+        item = {
+            "title": "Need help fixing CI automation",
+            "url": "https://github.com/acme/project/issues/1",
+            "evidence": "We need a developer to fix our failing automation workflow.",
+            "score": 75,
+        }
+        lead = a.make_lead(item, "public_buyer_request")
+        self.assertEqual(lead["status"], "QUALIFIED")
+        self.assertFalse(lead["auto_contact_eligible"])
+
     def test_research_artifact_is_watch(self):
         item = {
             "title": "Automation research report",
