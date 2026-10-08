@@ -10,9 +10,10 @@ textarea{min-height:110px;resize:vertical}.price{font-size:30px;font-weight:800}
 .muted{color:#666}.small{font-size:13px}.warn{background:#fff7e6;border-color:#e5c77a}
 </style></head>
 <body>
-<p class="muted">Kikik Journey · Manual Order</p>
+<p class="muted">Kikik Journey · Central Checkout</p>
 <h1>Order directly</h1>
-<p>Choose an offer and the email that should receive confirmation and delivery. The order is handled automatically by AgentMail.</p>
+<p>Choose an offer, enter your contact email, select a payment method, and submit your order request. You do <strong>not</strong> need to read or modify repository source code.</p>
+<p class="small muted"><a href="../index.html">← Back to AI Opportunity Lab</a></p>
 <div class="card">
 <label for="offer">Offer</label>
 <select id="offer">
@@ -50,7 +51,7 @@ document.getElementById('order').onclick=()=>{
 const email=document.getElementById('email').value.trim().toLowerCase();
 if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){result.textContent='Enter a valid contact email.';return;}
 const o=offers[offer.value],ref='KJ-MANUAL-'+Date.now().toString(36).toUpperCase();
-const body=['MANUAL ORDER','Order reference: '+ref,'Offer: '+offer.value,'Contact email: '+email,'Name: '+document.getElementById('name').value.trim().slice(0,120),'Payment method: '+document.getElementById('payment').value,'Source: '+source,'Requested offer price: '+o.idr+' / '+o.usdt+' USDT','Project notes: '+document.getElementById('notes').value.trim().slice(0,2000),'','Payment must be independently verified before PAID.','No passwords, OTPs, API keys, seed phrases, private keys, or other sensitive credentials.'].join('\n');
+const body=['MANUAL ORDER','Order reference: '+ref,'Offer: '+offer.value,'Contact email: '+email,'Name: '+document.getElementById('name').value.trim().slice(0,120),'Payment method: '+document.getElementById('payment').value,'Source: '+source,'Requested offer price: '+o.idr+' / '+o.usdt+' USDT','Project notes: '+document.getElementById('notes').value.trim().slice(0,2000),'','Payment must be independently verified before PAID. After verification, confirmation/delivery is sent to the supplied contact email.','No passwords, OTPs, API keys, seed phrases, private keys, or other sensitive credentials.'].join('\n');
 result.textContent='Opening your email client for '+ref+'…';
 location.href='mailto:kikikjourney@agentmail.to?subject='+encodeURIComponent('KJ MANUAL ORDER '+ref+' — '+o.name)+'&body='+encodeURIComponent(body);
 };
