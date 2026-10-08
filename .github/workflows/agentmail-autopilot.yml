@@ -2,11 +2,8 @@ name: M3 · AgentMail Transaction & Delivery Engine
 run-name: "M3 · AgentMail Transaction & Delivery — ${{ github.event_name }} #${{ github.run_number }}"
 
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - "data/**"
-      - "profit_report.json"
+  schedule:
+    - cron: "*/15 * * * *"
   workflow_dispatch:
   workflow_call:
 
