@@ -47,8 +47,9 @@ def already_contacted(email):
             if "kikik journey" in subject or "automation pilot" in subject:
                 return True
         return False
-    except urllib.error.HTTPError:
-        return False
+    except Exception:
+        # History uncertainty must never become permission to send a duplicate.
+        return "history_check_failed"
 
 def eligible(lead):
     return (
@@ -79,7 +80,10 @@ def send_one(lead):
     email = normalized_email(lead.get("contact_email"))
     if not email:
         return "ineligible"
-    if already_contacted(email):
+    history = already_contacted(email)
+    if history == "history_check_failed":
+        return "history_check_failed"
+    if history:
         return "already_contacted"
     payload = {
         "to": [email],
