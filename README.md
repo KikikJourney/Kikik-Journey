@@ -4,6 +4,16 @@ Kikik Journey is an execution-oriented opportunity discovery, validation, custom
 
 The repository combines a GitHub Actions radar with deterministic scoring, revenue packaging, buyer-request qualification, a Qwen second-pass worker, lightweight sales pages, payment configuration, and validation tests.
 
+> ## 🛒 Ready to order?
+>
+> **[ORDER NOW — Open the Central Checkout](sales/manual-order.html?source=github-readme)**
+>
+> Choose the product, enter your contact email, select a payment method, and submit the order request from the customer-facing checkout page. **You do not need to read or modify source code to place an order.**
+>
+> Available offers: **WooCommerce → Google Sheets (Rp399.000)** · **WhatsApp → Google Sheets (Rp199.000)** · **Workflow Rescue (Rp250.000)** · **AI Opportunity Validation Kit (Rp19.000)**.
+>
+> Payment is independently verified before an order becomes **PAID**. After verification, delivery/confirmation is sent to the supplied email.
+
 **Operating loop**
 
 `M1 DISCOVER → M2 QUALIFY/ACQUIRE → M3 PAYMENT/INTAKE/DELIVERY → M4 PROFIT FEEDBACK → M2 PRIORITY UPDATE`
@@ -59,17 +69,28 @@ The acquisition loop is:
 
 The system does not treat a public request as consent, a customer, or a completed sale.
 
-## M3 — Manual Order, Payment Verification, and AgentMail Delivery
+## M3 — Central Manual Checkout, Payment Verification, and AgentMail Delivery
 
 The public conversion path is:
 
-`SOCIAL/GITHUB TRAFFIC → MANUAL ORDER → PAYMENT VERIFICATION → PAID → AGENTMAIL DELIVERY → M4 PROFIT FEEDBACK`
+`SOCIAL/GITHUB TRAFFIC → CENTRAL CHECKOUT → PAYMENT VERIFICATION → PAID → AGENTMAIL DELIVERY → M4 PROFIT FEEDBACK`
 
-The public manual-order page is:
+### Customer-facing checkout
 
-`sales/manual-order.html`
+**[Open the Central Checkout →](sales/manual-order.html?source=github-readme)**
 
-A manual order is intake only. **AgentMail is a delivery channel, not the payment verifier.** A customer is marked `PAID` only after an independent payment verification succeeds.
+The central checkout lives at `sales/manual-order.html`. It is a normal customer-facing HTML page, not source code that customers need to understand.
+
+It collects only:
+
+- selected offer
+- contact email
+- optional name
+- optional non-sensitive project/delivery notes
+- payment method
+- traffic source attribution
+
+The checkout generates a unique order reference and prepares an order request. **AgentMail is a delivery channel, not the payment verifier.** A customer is marked `PAID` only after an independent payment verification succeeds.
 
 For verified USDT payments:
 
@@ -81,11 +102,11 @@ For verified USDT payments:
 
 QRIS and Dana may be displayed as payment methods, but the automation does not invent merchant-side confirmation. Those orders remain pending until an independent verification path exists.
 
+No passwords, OTPs, API keys, seed phrases, private keys, or full credentials are collected through the order flow.
+
 ### Revenue event ledger
 
 `workers/revenue_event_ledger.py` provides an idempotent append-only event ledger. M3 payment/delivery events can therefore be consumed by M4 without double-counting.
-
-No passwords, OTPs, API keys, seed phrases, private keys, or full credentials are collected through the order flow.
 
 ## M4 — Profit Feedback
 
@@ -126,17 +147,18 @@ Payment configuration is represented by `payment-config.json` and `payment-confi
 The repository includes a lightweight static sales site:
 
 - `index.html` — main AI Opportunity Lab landing page
+- `sales/manual-order.html` — **central customer checkout/order gateway**
 - `sales/woocommerce.html` — WooCommerce automation offer
 - `sales/wa-sheet.html` — WhatsApp → Sheets offer
 - `sales/cashflow.html` — Workflow Rescue / pilot page
-- `sales/checkout.html` — checkout flow
-- `sales/pilot-checkout.html` — pilot checkout
-- `sales/wa-sheet-checkout.html` — WhatsApp → Sheets checkout
+- `sales/checkout.html` — legacy/direct payment information page
+- `sales/pilot-checkout.html` — legacy pilot payment information page
+- `sales/wa-sheet-checkout.html` — legacy WhatsApp payment information page
 - `sales/service.html` — service information
 - `tools/workflow-diagnostic.html` — free workflow diagnostic
 - `products/ai-opportunity-validation-kit/` — validation-kit product assets
 
-The landing page currently presents the paid offers at Rp399.000, Rp199.000, Rp250.000, and the validation kit at Rp19.000, plus a free scorecard.
+**All customer purchase CTAs should route to the central checkout** so repository/social traffic has one clear order path.
 
 ## GitHub Actions automation
 
@@ -147,8 +169,6 @@ The M1–M4 automation is split across these workflows:
 - `.github/workflows/agentmail-autopilot.yml` — M3 payment/event processing and AgentMail delivery
 - `.github/workflows/m4-profit-feedback.yml` — M4 revenue/profit feedback
 - `.github/workflows/pages.yml` — static-site deployment and page validation
-
-
 
 The main discovery workflow is:
 
@@ -179,8 +199,6 @@ M3/M4 additionally maintain:
 - `data/revenue_events.json` — append-only M3 revenue event state
 - `data/profit_policy.json` — bounded M4 acquisition policy
 - `profit_report.json` — current revenue/profit feedback report
-
-
 
 The workflow produces and validates:
 
