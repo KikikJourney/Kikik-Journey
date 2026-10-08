@@ -49,8 +49,9 @@ jobs:
         if: ${{ inputs.m1_run_id == '' }}
         env:
           KJ_BUSINESS_DISCOVERY_LIMIT: "12"
-          KJ_DISCOVERY_TIMEOUT_SECONDS: "8"
-          KJ_MAX_CANDIDATES_PER_QUERY: "24"
+          KJ_DISCOVERY_TIMEOUT_SECONDS: "6"
+          KJ_MAX_CANDIDATES_PER_QUERY: "12"
+          KJ_MAX_DISCOVERY_QUERIES: "6"
         run: python workers/business_prospect_discovery_v3.py
       - name: Assert discovery artifact exists
         if: ${{ inputs.m1_run_id == '' }}
