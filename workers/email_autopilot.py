@@ -10,6 +10,10 @@ except ModuleNotFoundError:
 from datetime import datetime, timezone
 from decimal import Decimal
 try:
+    from workers.revenue_event_ledger import append_events
+except ModuleNotFoundError:
+    from revenue_event_ledger import append_events
+try:
     from workers.problem_solving_engine import solve, build_customer_message
 except ModuleNotFoundError:
     from problem_solving_engine import solve, build_customer_message
@@ -28,10 +32,10 @@ GITHUB_REPO = os.getenv("GITHUB_REPOSITORY", "KikikJourney/Kikik-Journey")
 PAYMENT_RECIPIENT = os.getenv("PAYMENT_RECIPIENT", "0x4ce7004e7127f8b2386eb355e088f127c24b3fac")
 VALIDATION_KIT_URL = "https://github.com/KikikJourney/Kikik-Journey/tree/main/products/ai-opportunity-validation-kit"
 OFFERS = {
-    "woocommerce": ("WooCommerce → Google Sheets pilot", Decimal("5")),
-    "whatsapp": ("WhatsApp → Google Sheets mini automation", Decimal("2.5")),
-    "workflow": ("Workflow Rescue Pilot", Decimal("3")),
-    "validation": ("AI Opportunity Validation Kit", Decimal("0.25")),
+    "woocommerce": ("WooCommerce → Google Sheets pilot", Decimal("5"), 399000),
+    "whatsapp": ("WhatsApp → Google Sheets mini automation", Decimal("2.5"), 199000),
+    "workflow": ("Workflow Rescue Pilot", Decimal("3"), 250000),
+    "validation": ("AI Opportunity Validation Kit", Decimal("0.25"), 19000),
 }
 
 def api(path, method="GET", payload=None):
@@ -224,7 +228,29 @@ def process(inbox,state,message):
                     github_update_issue(existing["number"], paid_title, paid_body)
                 else:
                     github_issue(paid_title, paid_body)
+                if offer in OFFERS:
+                    append_events([{
+                        "event_id": "paid-" + h.lower(),
+                        "event_type": "paid",
+                        "source": "agentmail",
+                        "offer": offer,
+                        "order_ref": ref,
+                        "currency": "USDT",
+                        "amount": str(amount),
+                        "amount_idr": OFFERS[offer][2],
+                        "tx_hash": h.lower(),
+                        "cost_idr": 0,
+                    }])
                 if offer == "validation":
+                    append_events([{
+                        "event_id": "delivered-" + ref,
+                        "event_type": "delivered",
+                        "source": "agentmail",
+                        "offer": offer,
+                        "order_ref": ref,
+                        "amount_idr": 0,
+                        "cost_idr": 0,
+                    }])
                     body=(f"Payment verified on BNB Smart Chain (BEP-20). Order {ref} is PAID.\n\n"
                           f"Your AI Opportunity Validation Kit: {VALIDATION_KIT_URL}\n"
                           "The kit is ready immediately; no credentials are required.")
