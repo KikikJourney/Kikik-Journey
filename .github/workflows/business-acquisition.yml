@@ -7,7 +7,16 @@ on:
       - "data/**"
       - "profit_report.json"
   workflow_dispatch:
+    inputs:
+      m1_run_id:
+        description: "M1 run ID whose acquisition artifact should be reused"
+        required: false
+        type: string
   workflow_call:
+    inputs:
+      m1_run_id:
+        required: false
+        type: string
   schedule:
     - cron: "7 */2 * * *"
 
@@ -28,24 +37,26 @@ jobs:
         with:
           python-version: "3.12"
       - name: Reuse M1 acquisition queue in orchestrated run
-        if: ${{ github.event_name == 'workflow_call' }}
+        if: ${{ inputs.m1_run_id != '' }}
         uses: actions/download-artifact@v4
         with:
           name: customer-acquisition-queue
           path: input-m1
+          run-id: ${{ inputs.m1_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Discover public business prospects
-        if: ${{ github.event_name != 'workflow_call' }}
+        if: ${{ inputs.m1_run_id == '' }}
         env:
           KJ_BUSINESS_DISCOVERY_LIMIT: "12"
           KJ_DISCOVERY_TIMEOUT_SECONDS: "8"
           KJ_MAX_CANDIDATES_PER_QUERY: "24"
         run: python workers/business_prospect_discovery_v3.py
       - name: Assert discovery artifact exists
-        if: ${{ github.event_name != 'workflow_call' }}
+        if: ${{ inputs.m1_run_id == '' }}
         run: test -s business_prospects.json
       - name: Build business-first queue
-        if: ${{ github.event_name != 'workflow_call' }}
+        if: ${{ inputs.m1_run_id == '' }}
         run: |
           python - <<'PY'
           import json
@@ -61,7 +72,7 @@ jobs:
           PY
           python workers/business_first_acquisition.py
       - name: Prepare orchestrated acquisition queue
-        if: ${{ github.event_name == 'workflow_call' }}
+        if: ${{ inputs.m1_run_id != '' }}
         run: |
           cp input-m1/business_prospects.json business_prospects.json
           cp input-m1/business_first_report.json business_first_report.json
