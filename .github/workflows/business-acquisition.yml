@@ -174,7 +174,7 @@ jobs:
           path: outreach_report.json
 
   github-outreach:
-    needs: [qualify, outreach]
+    needs: qualify
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -187,16 +187,10 @@ jobs:
         with:
           name: business-qwen-qualification
           path: input/qwen
-      - name: Calculate remaining outreach capacity
-        run: |
-          contacted="$(python -c 'import json; print(json.load(open("outreach_report.json", encoding="utf-8")).get("contacted", 0))')"
-          remaining=$((3 - contacted))
-          if [ "$remaining" -lt 0 ]; then remaining=0; fi
-          echo "KJ_GITHUB_MAX_OUTREACH_PER_RUN=$remaining" >> "$GITHUB_ENV"
-          echo "Global outreach cap: 3/run; business email contacted: $contacted; GitHub remaining: $remaining"
       - name: Evaluate strict GitHub opportunities and outreach
         env:
           AGENT_OUTREACH_API: ${{ secrets.AGENT_OUTREACH_API }}
+          KJ_GITHUB_MAX_OUTREACH_PER_RUN: "3"
           KJ_GITHUB_MIN_OUTREACH_SCORE: "80"
           KJ_GITHUB_ACTIVE_DAYS: "90"
           CHECKOUT_BASE_URL: "https://kikikjourney.github.io/Kikik-Journey/sales/manual_order.html"
