@@ -62,7 +62,7 @@ def already_contacted(email):
 
 def eligible(lead):
     return (
-        lead.get("status") == "QUALIFIED"
+        lead.get("status") == "QUALIFIED" and lead.get("actionable") is True
         and lead.get("source") == "public_business_web_signal"
         and bool(normalized_email(lead.get("contact_email")))
         and bool(lead.get("matched_offer"))
@@ -142,6 +142,7 @@ def main():
     results = {}
     contacted = 0
     contacted_leads = []
+    attempts = []
     occurred_at = datetime.now(timezone.utc).isoformat()
     for lead in leads:
         if contacted >= MAX_PER_RUN:
@@ -153,6 +154,7 @@ def main():
         except Exception as exc:
             status = f"error:{type(exc).__name__}"
         results[status] = results.get(status, 0) + 1
+        attempts.append({"email_hash": hashlib.sha256(normalized_email(lead.get("contact_email")).encode()).hexdigest()[:16], "offer": lead.get("matched_offer", "unknown"), "status": status, "occurred_at": occurred_at})
         if status == "contacted":
             contacted += 1
             contacted_leads.append({
@@ -172,6 +174,7 @@ def main():
         "max_per_run": MAX_PER_RUN,
         "results": results,
         "contacted_leads": contacted_leads,
+        "attempts": attempts,
         "qwen_gate_enabled": bool(qwen_data.get("results")),
         "policy": "Business-first public-web prospects only; public business email; one-to-one; deduplicated by AgentMail recipient history; capped per run; STOP honored; no credential collection; physical-address compliance gate.",
         "compliance_gate": "blocked_without_KJ_POSTAL_ADDRESS",
