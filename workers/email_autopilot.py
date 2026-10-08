@@ -177,6 +177,12 @@ def process(inbox,state,message):
     text="\n".join(str(detail.get(k,"")) for k in ("subject","extracted_text","text"))
     kind=classify(text)
     to=sender(detail.get("from"))
+    detected_offer = detect_offer(text)
+    if to and to != INBOX.lower():
+        import hashlib
+        append_events([{"event_id":"reply-" + mid,"event_type":"replied","source":"agentmail","offer":detected_offer or "unknown","contact_hash":hashlib.sha256(to.encode()).hexdigest()[:16],"message_id":mid,"cost_idr":0}])
+        if kind in ("purchase_intent", "offer_interest"):
+            append_events([{"event_id":"qualified-" + mid,"event_type":"qualified","source":"agentmail","offer":detected_offer or "unknown","contact_hash":hashlib.sha256(to.encode()).hexdigest()[:16],"message_id":mid,"cost_idr":0}])
     if not to or to==INBOX.lower():
         state["processed"][mid]={"status":"ignored"}; return "ignored"
     subject=detail.get("subject") or "Kikik Journey"
