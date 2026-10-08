@@ -5,23 +5,21 @@ on:
     branches: ["**"]
     paths:
       - "workers/firecrawl_enrichment.py"
-      - "workers/postiz_publisher.py"
       - "tests/test_firecrawl_enrichment.py"
-      - "tests/test_postiz_publisher.py"
-      - ".github/workflows/social-distribution.yml"
+      - ".github/workflows/opportunity-radar.yml"
+      - ".github/workflows/integration-validation.yml"
   pull_request:
     paths:
       - "workers/firecrawl_enrichment.py"
-      - "workers/postiz_publisher.py"
       - "tests/test_firecrawl_enrichment.py"
-      - "tests/test_postiz_publisher.py"
-      - ".github/workflows/social-distribution.yml"
+      - ".github/workflows/opportunity-radar.yml"
+      - ".github/workflows/integration-validation.yml"
 
 permissions:
   contents: read
 
 jobs:
-  python:
+  firecrawl:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -29,18 +27,9 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-      - name: Compile integration code
-        run: python -m py_compile workers/firecrawl_enrichment.py workers/postiz_publisher.py
-      - name: Run integration unit tests
-        run: python -m unittest tests/test_firecrawl_enrichment.py tests/test_postiz_publisher.py -v
-      - name: Validate workflow YAML
-        run: python - <<'PY'
-import pathlib
-p=pathlib.Path(".github/workflows/social-distribution.yml")
-text=p.read_text(encoding="utf-8")
-required=("POSTIZ_API_KEY","POSTIZ_INTEGRATION_IDS","workers/postiz_publisher.py")
-missing=[x for x in required if x not in text]
-if missing:
-    raise SystemExit("missing workflow contract: "+", ".join(missing))
-print("workflow contract ok")
-PY
+      - name: Compile Firecrawl integration
+        run: python -m py_compile workers/firecrawl_enrichment.py
+      - name: Run Firecrawl unit tests
+        run: python -m unittest tests/test_firecrawl_enrichment.py -v
+      - name: Validate Firecrawl workflow contract
+        run: python -c 'from pathlib import Path; w=Path("workers/firecrawl_enrichment.py").read_text(); y=Path(".github/workflows/opportunity-radar.yml").read_text(); r=["FIRECRAWL_API_KEY","firecrawl_report.json"]; q=["FIRECRAWL_API_KEY: $"+"{{ secrets.FIRECRAWL_API_KEY }}","python workers/firecrawl_enrichment.py","firecrawl_report.json"]; m=[x for x in r if x not in w]+[x for x in q if x not in y]; raise SystemExit("missing Firecrawl contract: "+", ".join(m)) if m else print("Firecrawl workflow contract ok")'
