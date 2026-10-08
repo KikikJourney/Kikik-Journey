@@ -1,6 +1,6 @@
 import unittest
 from unittest.mock import patch
-from workers.manual_order_gateway import parse, ref, offer_from, tx_hash, process_payment, process_order
+from workers.manual_order_gateway import parse, ref, offer_from, tx_hash, process_payment, process_order, send
 
 class ManualOrderGatewayTests(unittest.TestCase):
     def setUp(self):
@@ -42,6 +42,16 @@ class ManualOrderGatewayTests(unittest.TestCase):
         result = process_order("m1", self.text + "\nTransaction hash: " + tx)
         self.assertEqual(result["status"], "paid_and_ready_for_delivery")
         payment.assert_called_once()
+
+    @patch("workers.manual_order_gateway.api")
+    def test_delivery_uses_agentmail_send_endpoint(self, api_mock):
+        send("buyer@example.com", "Subject", "Body", ["kj-paid"])
+        api_mock.assert_called_once()
+        args, kwargs = api_mock.call_args
+        self.assertEqual(args[0], "/inboxes/kikikjourney%40agentmail.to/messages/send")
+        self.assertEqual(args[1], "POST")
+        self.assertEqual(args[2]["to"], "buyer@example.com")
+        self.assertEqual(args[2]["labels"], ["kj-paid"])
 
     def test_reject_missing_contact(self):
         p=parse(self.text.replace("buyer@example.com",""))
