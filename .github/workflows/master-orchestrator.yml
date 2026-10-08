@@ -74,27 +74,24 @@ jobs:
           echo "run_id=${run_id}" >> "${GITHUB_OUTPUT}"
           gh run watch "${run_id}" --repo "${GITHUB_REPOSITORY}" --exit-status
 
-      - name: Wait for M4 triggered by this M3 run
+      - name: Dispatch and monitor M4
+        id: m4
         env:
           GH_TOKEN: ${{ github.token }}
           M3_RUN_ID: ${{ steps.m3.outputs.run_id }}
         run: |
           set -euo pipefail
-          m3_started_at="$(gh run view "${M3_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --json startedAt --jq '.startedAt')"
-          m3_head_sha="$(gh run view "${M3_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --json headSha --jq '.headSha')"
-          m3_started_epoch="$(date -d "${m3_started_at}" +%s)"
-          for i in $(seq 1 60); do
-            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow m4-profit-feedback.yml --limit 50 --json databaseId,event,status,conclusion,createdAt,headSha | jq -r --arg sha "${m3_head_sha}" --argjson started "${m3_started_epoch}" '[.[] | select(.event=="workflow_run") | select(.status=="completed") | select(.headSha==$sha) | select((.createdAt | fromdateiso8601) >= $started)][0].databaseId // empty')"
-            if [ -n "${run_id}" ]; then
-              conclusion="$(gh run view "${run_id}" --repo "${GITHUB_REPOSITORY}" --json conclusion --jq '.conclusion')"
-              echo "M4 run ${run_id}: ${conclusion}"
-              if [ "${conclusion}" = "success" ]; then exit 0; fi
-              if [ "${conclusion}" = "failure" ] || [ "${conclusion}" = "cancelled" ]; then exit 1; fi
-            fi
-            sleep 5
+          dispatch_epoch="$(date -u +%s)"
+          gh workflow run m4-profit-feedback.yml --repo "${GITHUB_REPOSITORY}" --ref main -f m3_run_id="${M3_RUN_ID}"
+          run_id=""
+          for i in $(seq 1 30); do
+            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow m4-profit-feedback.yml --event workflow_dispatch --branch main --limit 20 --json databaseId,createdAt --jq "[.[] | select((.createdAt | fromdateiso8601) >= ${dispatch_epoch})][0].databaseId // empty")"
+            [ -n "${run_id}" ] && break
+            sleep 2
           done
-          echo "Timed out waiting for the M4 workflow_run associated with M3 ${M3_RUN_ID}."
-          exit 1
+          test -n "${run_id}"
+          echo "run_id=${run_id}" >> "${GITHUB_OUTPUT}"
+          gh run watch "${run_id}" --repo "${GITHUB_REPOSITORY}" --exit-status
 
       - name: Final summary
         if: always()
