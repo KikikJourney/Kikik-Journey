@@ -7,7 +7,7 @@ import re
 import time
 from urllib.parse import quote_plus, urljoin, urlparse
 from urllib.request import Request, urlopen
-from urllib.error import HTTPError, URLError
+from urllib.error import HTTPError, URLError, InvalidURL
 
 LIMIT = int(os.getenv("KJ_BUSINESS_DISCOVERY_LIMIT", "12"))
 SEARCH_TIMEOUT = int(os.getenv("KJ_DISCOVERY_TIMEOUT_SECONDS", "8"))
@@ -86,12 +86,27 @@ def get(url, timeout=SEARCH_TIMEOUT):
         )
 
 
+def normalize_url(url):
+    clean = html.unescape(str(url or "")).strip()
+    if not clean:
+        return ""
+    # Markdown search results may include a quoted link title after the URL.
+    clean = re.split(r'\\s+(?=["“])', clean, maxsplit=1)[0]
+    parsed = urlparse(clean)
+    if parsed.scheme not in ("http", "https") or not parsed.netloc:
+        return ""
+    return parsed._replace(fragment="").geturl().rstrip(".,);")
+
+
 def read(url):
+    clean_url = normalize_url(url)
+    if not clean_url:
+        return "", url
     for attempt in range(2):
         try:
-            body, _ = get("https://r.jina.ai/" + url)
-            return body, url
-        except (HTTPError, URLError, TimeoutError, UnicodeError, ValueError):
+            body, final = get("https://r.jina.ai/" + clean_url)
+            return body, normalize_url(final) or clean_url
+        except (HTTPError, URLError, TimeoutError, UnicodeError, ValueError, InvalidURL):
             if attempt == 0:
                 time.sleep(0.3)
     return "", url
@@ -119,7 +134,9 @@ def search(query):
         links = re.findall(r'\[([^\]]+)\]\((https?://[^\s\)"]+)', body)
         links += [(u, u) for u in re.findall(r"https?://[^\s<>\]\)\"']+", body)]
         for title, url in links:
-            clean_url = html.unescape(url).rstrip(".,);")
+            clean_url = normalize_url(url)
+            if not clean_url:
+                continue
             parsed = urlparse(clean_url)
             domain = parsed.netloc.lower().removeprefix("www.")
             path = parsed.path.lower()
@@ -212,7 +229,9 @@ def inspect(item, query):
         re.I,
     )
     for candidate in contact_links[:2]:
-        candidate_url = urljoin(final, candidate)
+        candidate_url = normalize_url(urljoin(final, candidate))
+        if not candidate_url:
+            continue
         contact_url = contact_url or candidate_url
         contact_body, contact_final = read(candidate_url)
         found.extend(
