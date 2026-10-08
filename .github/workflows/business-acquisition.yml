@@ -3,6 +3,12 @@ name: Business Acquisition Engine
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "data/**"
+      - "profit_report.json"
+    paths-ignore:
+      - "data/**"
+      - "profit_report.json"
   workflow_dispatch:
   schedule:
     - cron: "7 */2 * * *"
@@ -51,8 +57,8 @@ jobs:
           python -m json.tool business_prospects.json >/dev/null
           python -m json.tool business_first_report.json >/dev/null
           python -m json.tool customer_leads.json >/dev/null
-          python -m py_compile workers/business_prospect_discovery_v3.py workers/business_first_acquisition.py workers/business_email_outreach.py
-          python -m unittest tests/test_business_first_acquisition.py tests/test_business_prospect_discovery_v3.py -v
+          python -m py_compile workers/business_prospect_discovery_v3.py workers/business_first_acquisition.py workers/business_email_outreach.py workers/revenue_feedback.py
+          python -m unittest tests/test_business_first_acquisition.py tests/test_business_prospect_discovery_v3.py tests/test_revenue_feedback.py tests/test_profit_policy_integration.py -v
       - uses: actions/upload-artifact@v4
         with:
           name: business-acquisition-queue

@@ -1,0 +1,65 @@
+name: M4 Profit Feedback Engine
+
+on:
+  workflow_run:
+    workflows: ["Business Acquisition Engine"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: write
+
+concurrency:
+  group: m4-profit-feedback-main
+  cancel-in-progress: false
+
+jobs:
+  feedback:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Download acquisition outcome
+        if: ${{ github.event_name == 'workflow_run' }}
+        uses: actions/download-artifact@v5
+        with:
+          name: business-outreach-report
+          path: input
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare empty outcome when manually dispatched
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          mkdir -p input
+          test -f input/outreach_report.json || printf '%s\n' '{"contacted_leads":[]}' > input/outreach_report.json
+
+      - name: Validate and build profit policy
+        run: |
+          python -m py_compile workers/revenue_feedback.py workers/business_first_acquisition.py
+          python -m unittest tests/test_revenue_feedback.py tests/test_profit_policy_integration.py tests/test_business_first_acquisition.py -v
+          python workers/revenue_feedback.py             --events data/revenue_events.json             --outreach-report input/outreach_report.json             --policy data/profit_policy.json             --report profit_report.json
+          python -m json.tool data/revenue_events.json >/dev/null
+          python -m json.tool data/profit_policy.json >/dev/null
+          python -m json.tool profit_report.json >/dev/null
+
+      - name: Commit feedback state
+        run: |
+          git config user.name "kikikjourney-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/revenue_events.json data/profit_policy.json profit_report.json
+          if git diff --cached --quiet; then
+            echo "No feedback state change."
+            exit 0
+          fi
+          git commit -m "chore: update M4 profit feedback"
+          git push origin HEAD:main

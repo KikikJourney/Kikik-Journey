@@ -1,12 +1,14 @@
 import json
 import re
 from datetime import datetime, timezone
+from pathlib import Path
 
 REPORT = "opportunity_report.json"
 BUSINESS = "business_prospects.json"
 COMBINED = "business_first_report.json"
 OUTPUT = "customer_leads.json"
 CARDS = "customer_acquisition.md"
+POLICY = Path("data/profit_policy.json")
 
 OFFERS = [
     {
@@ -42,14 +44,33 @@ INTENT = (
 )
 ARTIFACTS = ("roadmap", "research report", "report only", "backlog", "directory", "job board", "status update")
 
+
 def norm(text):
     return re.sub(r"\s+", " ", (text or "").lower()).strip()
+
+
+def load_policy():
+    if not POLICY.exists():
+        return {}
+    try:
+        return json.loads(POLICY.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return {}
+
+
+def feedback_multiplier(offer_name, source):
+    policy = load_policy()
+    offer_mult = float(policy.get("offer_multipliers", {}).get(offer_name, 1.0))
+    source_mult = float(policy.get("source_multipliers", {}).get(source, 1.0))
+    return max(0.75, min(1.50, offer_mult * source_mult))
+
 
 def match_offer(text):
     t = norm(text)
     ranked = [(sum(k in t for k in o["keywords"]), o) for o in OFFERS]
     ranked.sort(key=lambda x: x[0], reverse=True)
     return ranked[0][1]
+
 
 def gate(item, offer):
     t = norm(f'{item.get("title","")} {item.get("evidence",item.get("text",""))}')
@@ -59,13 +80,15 @@ def gate(item, offer):
         and not any(x in t for x in ARTIFACTS)
     )
 
+
 def make_lead(item, source):
     offer = match_offer(f'{item.get("title","")} {item.get("evidence",item.get("text",""))}')
     explicit = gate(item, offer)
     base = float(item.get("score", 0))
     contact_bonus = 20 if item.get("contact_email") else 0
     source_bonus = 10 if source == "public_business_web_signal" else 0
-    score = min(100, round(base + contact_bonus + source_bonus, 2))
+    adjusted = (base + contact_bonus + source_bonus) * feedback_multiplier(offer["name"], source)
+    score = min(100, round(adjusted, 2))
     qualified = explicit
     return {
         "status": "QUALIFIED" if qualified else "WATCH",
@@ -85,6 +108,7 @@ def make_lead(item, source):
         "checkout_path": offer["checkout"],
         "scope": offer["scope"],
         "timebox": offer["timebox"],
+        "feedback_multiplier": feedback_multiplier(offer["name"], source),
         "response_draft": (
             f"Hi — I noticed your public request about “{item.get('title','your workflow')}”. "
             f"I can handle a fixed-scope {offer['name']} pilot: {offer['scope']} "
@@ -104,6 +128,7 @@ def make_lead(item, source):
             "Honor STOP/unsubscribe requests.",
         ],
     }
+
 
 def main():
     report = json.loads(open(REPORT, encoding="utf-8").read())
@@ -143,7 +168,7 @@ def main():
             "business_email_leads": sum(bool(x.get("contact_email")) for x in leads),
             "auto_contact_eligible": sum(bool(x["auto_contact_eligible"]) for x in leads),
         },
-        "lead_loop": "BUSINESS SIGNAL → REACHABLE CONTACT → QUALIFY → OFFER → ONE-TO-ONE OUTREACH → CHECKOUT → PAYMENT → DELIVERY",
+        "lead_loop": "BUSINESS SIGNAL → REACHABLE CONTACT → QUALIFY → OFFER → ONE-TO-ONE OUTREACH → CHECKOUT → PAYMENT → DELIVERY → FEEDBACK",
         "warning": "Public business data is a lead signal, not consent or a sale. Outreach is bounded, relevant, deduplicated and must honor opt-out requests.",
         "leads": leads[:50],
     }
@@ -164,6 +189,7 @@ def main():
         lines += [
             f"## {lead['status']} — {lead['matched_offer']}",
             f"- Priority: **{lead['priority_score']}**",
+            f"- Feedback multiplier: **{lead['feedback_multiplier']}**",
             f"- Business/request: {lead['title']}",
             f"- Website/source: {lead['url']}",
             f"- Contact: {lead.get('contact_email') or 'not available'}",
@@ -173,6 +199,7 @@ def main():
         ]
     open(CARDS, "w", encoding="utf-8").write("\n".join(lines))
     print(json.dumps(output["summary"], indent=2))
+
 
 if __name__ == "__main__":
     main()

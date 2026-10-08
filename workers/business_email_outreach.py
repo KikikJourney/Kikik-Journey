@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
 """Bounded one-to-one email outreach for qualified business prospects."""
 import argparse
+import hashlib
 import json
 import os
 import re
 import urllib.error
 import urllib.parse
 import urllib.request
+from datetime import datetime, timezone
 
 MAX_PER_RUN = int(os.getenv("KJ_MAX_OUTREACH_PER_RUN", "3"))
 AGENTMAIL_API = "https://api.agentmail.to/v0"
@@ -14,6 +16,7 @@ INBOX = os.getenv("AGENTMAIL_INBOX_EMAIL", "kikikjourney@agentmail.to")
 TOKEN = os.getenv("AGENTMAIL_API_KEY")
 POSTAL_ADDRESS = os.getenv("KJ_POSTAL_ADDRESS", "").strip()
 MARKER = "Kikik Journey — fixed-scope automation pilot"
+
 
 def api(path, method="GET", payload=None, query=None):
     if not TOKEN:
@@ -35,22 +38,27 @@ def api(path, method="GET", payload=None, query=None):
         raw = response.read().decode()
         return json.loads(raw) if raw else {}
 
+
 def normalized_email(value):
     value = (value or "").strip().lower()
-    match = re.search(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}", value, re.I)
+    match = re.search(r"[A-Z0-9._%+-]+@[A-Z0-9.-]+.[A-Z]{2,}", value, re.I)
     return match.group(0).lower() if match else ""
+
 
 def already_contacted(email):
     try:
-        payload = api(f"/inboxes/{urllib.parse.quote(INBOX, safe='')}/messages", query={"limit": 100, "to": email})
+        payload = api(
+            f"/inboxes/{urllib.parse.quote(INBOX, safe='')}/messages",
+            query={"limit": 100, "to": email},
+        )
         for message in payload.get("messages", []):
             subject = (message.get("subject") or "").lower()
             if "kikik journey" in subject or "automation pilot" in subject:
                 return True
         return False
     except Exception:
-        # History uncertainty must never become permission to send a duplicate.
         return "history_check_failed"
+
 
 def eligible(lead):
     return (
@@ -63,6 +71,7 @@ def eligible(lead):
         and bool(POSTAL_ADDRESS)
     )
 
+
 def email_body(lead):
     offer = lead["matched_offer"]
     price = f"Rp{lead['price_idr']:,}".replace(",", ".")
@@ -73,12 +82,13 @@ def email_body(lead):
         f"The scope is: {lead['scope']}\n\n"
         f"If this is still a live problem, you can review the exact scope here:\n"
         f"https://kikikjourney.github.io/Kikik-Journey/{lead['checkout_path']}\n\n"
-        "This is a commercial outreach message from Kikik Journey. No call is required to start. " 
+        "This is a commercial outreach message from Kikik Journey. No call is required to start. "
         "If it is not relevant, just reply STOP and I will not follow up. "
         "Please do not send passwords, OTPs, API keys, seed phrases, or other private credentials by email.\n\n"
         "Kikik Journey\n"
         f"{POSTAL_ADDRESS}"
     )
+
 
 def send_one(lead):
     email = normalized_email(lead.get("contact_email"))
@@ -98,6 +108,12 @@ def send_one(lead):
     api(f"/inboxes/{urllib.parse.quote(INBOX, safe='')}/messages/send", "POST", payload)
     return "contacted"
 
+
+def event_id(lead):
+    raw = f"{lead.get('contact_email','').lower()}|{lead.get('matched_offer','')}|{lead.get('url','')}"
+    return "contact-" + hashlib.sha256(raw.encode()).hexdigest()[:24]
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--leads", default="customer_leads.json")
@@ -106,7 +122,11 @@ def main():
     args = parser.parse_args()
 
     lead_data = json.loads(open(args.leads, encoding="utf-8").read())
-    qwen_data = json.loads(open(args.qwen, encoding="utf-8").read()) if os.path.exists(args.qwen) else {"results": []}
+    qwen_data = (
+        json.loads(open(args.qwen, encoding="utf-8").read())
+        if os.path.exists(args.qwen)
+        else {"results": []}
+    )
     qualified_urls = {
         ((x.get("source_request") or {}).get("url") or "").rstrip("/")
         for x in qwen_data.get("results", [])
@@ -121,6 +141,8 @@ def main():
 
     results = {}
     contacted = 0
+    contacted_leads = []
+    occurred_at = datetime.now(timezone.utc).isoformat()
     for lead in leads:
         if contacted >= MAX_PER_RUN:
             break
@@ -133,18 +155,30 @@ def main():
         results[status] = results.get(status, 0) + 1
         if status == "contacted":
             contacted += 1
+            contacted_leads.append({
+                "event_id": event_id(lead),
+                "source": lead.get("source", "unknown"),
+                "offer": lead.get("matched_offer", "unknown"),
+                "contact_hash": hashlib.sha256(
+                    normalized_email(lead.get("contact_email")).encode()
+                ).hexdigest()[:16],
+                "occurred_at": occurred_at,
+                "cost_idr": float(os.getenv("KJ_OUTREACH_COST_IDR", "0")),
+            })
 
     report = {
         "eligible_after_qwen": len(leads),
         "contacted": contacted,
         "max_per_run": MAX_PER_RUN,
         "results": results,
+        "contacted_leads": contacted_leads,
         "qwen_gate_enabled": bool(qwen_data.get("results")),
         "policy": "Business-first public-web prospects only; public business email; one-to-one; deduplicated by AgentMail recipient history; capped per run; STOP honored; no credential collection; physical-address compliance gate.",
         "compliance_gate": "blocked_without_KJ_POSTAL_ADDRESS",
     }
     open(args.report, "w", encoding="utf-8").write(json.dumps(report, indent=2))
     print(json.dumps(report, indent=2))
+
 
 if __name__ == "__main__":
     main()

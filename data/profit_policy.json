@@ -1,0 +1,6 @@
+{
+  "version": 1,
+  "offer_multipliers": {},
+  "source_multipliers": {},
+  "bounds": {"min": 0.75, "max": 1.5}
+}
