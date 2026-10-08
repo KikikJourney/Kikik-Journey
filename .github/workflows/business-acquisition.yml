@@ -27,15 +27,25 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+      - name: Reuse M1 acquisition queue in orchestrated run
+        if: ${{ github.event_name == 'workflow_call' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: customer-acquisition-queue
+          path: input-m1
+
       - name: Discover public business prospects
+        if: ${{ github.event_name != 'workflow_call' }}
         env:
           KJ_BUSINESS_DISCOVERY_LIMIT: "12"
           KJ_DISCOVERY_TIMEOUT_SECONDS: "8"
           KJ_MAX_CANDIDATES_PER_QUERY: "24"
         run: python workers/business_prospect_discovery_v3.py
       - name: Assert discovery artifact exists
+        if: ${{ github.event_name != 'workflow_call' }}
         run: test -s business_prospects.json
       - name: Build business-first queue
+        if: ${{ github.event_name != 'workflow_call' }}
         run: |
           python - <<'PY'
           import json
@@ -50,6 +60,14 @@ jobs:
           )
           PY
           python workers/business_first_acquisition.py
+      - name: Prepare orchestrated acquisition queue
+        if: ${{ github.event_name == 'workflow_call' }}
+        run: |
+          cp input-m1/business_prospects.json business_prospects.json
+          cp input-m1/business_first_report.json business_first_report.json
+          cp input-m1/customer_leads.json customer_leads.json
+          cp input-m1/customer_acquisition.md customer_acquisition.md
+
       - name: Validate discovery
         run: |
           python -m json.tool business_prospects.json >/dev/null
