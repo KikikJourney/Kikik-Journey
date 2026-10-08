@@ -1,0 +1,105 @@
+name: Zorathvael OS — Master Orchestrator
+run-name: "Zorathvael OS — M1 → M2 → M3 → M4 #${{ github.run_number }}"
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: zorathvael-os-master-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  orchestrate:
+    name: "M1 → M2 → M3 → M4"
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Dispatch and monitor M1
+        id: m1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          dispatch_epoch="$(date -u +%s)"
+          gh workflow run opportunity-radar.yml --repo "${GITHUB_REPOSITORY}" --ref main
+          run_id=""
+          for i in $(seq 1 30); do
+            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow opportunity-radar.yml --event workflow_dispatch --branch main --limit 20 --json databaseId,createdAt --jq --argjson started "${dispatch_epoch}" '[.[] | select((.createdAt | fromdateiso8601) >= $started)][0].databaseId // empty')"
+            [ -n "${run_id}" ] && break
+            sleep 2
+          done
+          test -n "${run_id}"
+          echo "run_id=${run_id}" >> "${GITHUB_OUTPUT}"
+          gh run watch "${run_id}" --repo "${GITHUB_REPOSITORY}" --exit-status
+
+      - name: Dispatch and monitor M2
+        id: m2
+        env:
+          GH_TOKEN: ${{ github.token }}
+          M1_RUN_ID: ${{ steps.m1.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          dispatch_epoch="$(date -u +%s)"
+          gh workflow run business-acquisition.yml --repo "${GITHUB_REPOSITORY}" --ref main -f m1_run_id="${M1_RUN_ID}"
+          run_id=""
+          for i in $(seq 1 30); do
+            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow business-acquisition.yml --event workflow_dispatch --branch main --limit 20 --json databaseId,createdAt --jq --argjson started "${dispatch_epoch}" '[.[] | select((.createdAt | fromdateiso8601) >= $started)][0].databaseId // empty')"
+            [ -n "${run_id}" ] && break
+            sleep 2
+          done
+          test -n "${run_id}"
+          echo "run_id=${run_id}" >> "${GITHUB_OUTPUT}"
+          gh run watch "${run_id}" --repo "${GITHUB_REPOSITORY}" --exit-status
+
+      - name: Dispatch and monitor M3
+        id: m3
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          dispatch_epoch="$(date -u +%s)"
+          gh workflow run agentmail-autopilot.yml --repo "${GITHUB_REPOSITORY}" --ref main
+          run_id=""
+          for i in $(seq 1 30); do
+            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow agentmail-autopilot.yml --event workflow_dispatch --branch main --limit 20 --json databaseId,createdAt --jq --argjson started "${dispatch_epoch}" '[.[] | select((.createdAt | fromdateiso8601) >= $started)][0].databaseId // empty')"
+            [ -n "${run_id}" ] && break
+            sleep 2
+          done
+          test -n "${run_id}"
+          echo "run_id=${run_id}" >> "${GITHUB_OUTPUT}"
+          gh run watch "${run_id}" --repo "${GITHUB_REPOSITORY}" --exit-status
+
+      - name: Wait for M4 triggered by this M3 run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          M3_RUN_ID: ${{ steps.m3.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          m3_completed_at="$(gh run view "${M3_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --json completedAt --jq '.completedAt')"
+          m3_head_sha="$(gh run view "${M3_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --json headSha --jq '.headSha')"
+          m3_completed_epoch="$(date -d "${m3_completed_at}" +%s)"
+          for i in $(seq 1 60); do
+            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow m4-profit-feedback.yml --limit 50 --json databaseId,event,status,conclusion,createdAt,headSha --jq --argjson started "${m3_completed_epoch}" --arg sha "${m3_head_sha}" '[.[] | select(.event=="workflow_run") | select(.status=="completed") | select(.headSha==$sha) | select((.createdAt | fromdateiso8601) >= $started)][0].databaseId // empty')"
+            if [ -n "${run_id}" ]; then
+              conclusion="$(gh run view "${run_id}" --repo "${GITHUB_REPOSITORY}" --json conclusion --jq '.conclusion')"
+              echo "M4 run ${run_id}: ${conclusion}"
+              if [ "${conclusion}" = "success" ]; then exit 0; fi
+              if [ "${conclusion}" = "failure" ] || [ "${conclusion}" = "cancelled" ]; then exit 1; fi
+            fi
+            sleep 5
+          done
+          echo "Timed out waiting for the M4 workflow_run associated with M3 ${M3_RUN_ID}."
+          exit 1
+
+      - name: Final summary
+        if: always()
+        run: |
+          echo "Zorathvael OS orchestration finished."
+          echo "M1 run: ${{ steps.m1.outputs.run_id }}"
+          echo "M2 run: ${{ steps.m2.outputs.run_id }}"
+          echo "M3 run: ${{ steps.m3.outputs.run_id }}"
