@@ -10,8 +10,7 @@ This repository is the execution control plane for opportunity discovery, qualif
 | AI Vibe Prospecting | Business/prospect discovery, buying-intent enrichment, decision-maker discovery | External discovery input; never store secrets |
 | AgentMail | One-to-one outbound email and inbound response handling | External execution; write only normalized lead/outcome data back to repo |
 | Firecrawl | Public business-web evidence enrichment for actionable prospects | Optional GitHub Actions evidence layer; never changes score/qualification |
-| Postiz | Bounded social distribution and scheduling | Optional GitHub Actions publishing layer; central checkout only; no private prospect data |
-| Browser automation | Public-web research and user-directed workflows where a browser is required | External execution; no credential harvesting or bypasses |
+| | Browser automation | Public-web research and user-directed workflows where a browser is required | External execution; no credential harvesting or bypasses |
 | ChatGPT | Reasoning, qualification, offer matching, message generation, QA | Human/agent decision layer |
 
 ## Operating loop
@@ -52,7 +51,3 @@ Prices are current offer configuration, not revenue guarantees.
 - No customer is marked won merely because an email was sent.
 - External AI model APIs are not required by the repository radar.
 
-
-## Native automation boundary
-
-Firecrawl and Postiz are integrated as optional HTTP adapters inside GitHub Actions. They are not ChatGPT-side plugins. Missing provider secrets disable the corresponding capability without breaking the deterministic pipeline. Provider configuration errors are surfaced as explicit failures in the dedicated integration workflow.
