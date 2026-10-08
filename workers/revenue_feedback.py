@@ -85,6 +85,9 @@ def build_feedback(events):
             b["profit_idr"] = round(b["net_revenue_idr"] - b["cost_idr"], 2)
             contacted = b["contacted"]
             b["reply_rate"] = round(b["replied"] / contacted, 4) if contacted else 0.0
+            b["qualified_rate"] = round(b["qualified"] / b["replied"], 4) if b["replied"] else 0.0
+            b["paid_from_replied_rate"] = round(b["paid"] / b["replied"], 4) if b["replied"] else 0.0
+            b["paid_from_qualified_rate"] = round(b["paid"] / b["qualified"], 4) if b["qualified"] else 0.0
             b["conversion_rate"] = round(b["paid"] / contacted, 4) if contacted else 0.0
             b["profit_per_contacted_idr"] = round(b["profit_idr"] / contacted, 2) if contacted else 0.0
         return bucket_data
@@ -106,9 +109,11 @@ def build_feedback(events):
     }
     totals["net_revenue_idr"] = round(totals["revenue_idr"] - totals["refund_idr"], 2)
     totals["profit_idr"] = round(totals["net_revenue_idr"] - totals["cost_idr"], 2)
-    totals["conversion_rate"] = round(
-        totals["paid_orders"] / totals["contacted"], 4
-    ) if totals["contacted"] else 0.0
+    totals["reply_rate"] = round(totals["replies"] / totals["contacted"], 4) if totals["contacted"] else 0.0
+    totals["qualified_rate"] = round(totals["qualified"] / totals["replies"], 4) if totals["replies"] else 0.0
+    totals["paid_from_replied_rate"] = round(totals["paid_orders"] / totals["replies"], 4) if totals["replies"] else 0.0
+    totals["paid_from_qualified_rate"] = round(totals["paid_orders"] / totals["qualified"], 4) if totals["qualified"] else 0.0
+    totals["conversion_rate"] = round(totals["paid_orders"] / totals["contacted"], 4) if totals["contacted"] else 0.0
 
     def multiplier(b):
         if not b["contacted"]:
