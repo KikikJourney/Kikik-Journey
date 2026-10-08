@@ -28,6 +28,12 @@ QUERIES = [
     'site:community.n8n.io/t/ "looking for" automation workflow',
     'site:community.zapier.com "looking to use" automation Sheets',
     'site:forum.pabbly.com "need assistance" automation "Google Sheets"',
+    '"need help" WooCommerce orders inventory "contact us" -plugin -agency -zapier -n8n',
+    '"looking for" WooCommerce automation store orders -plugin -agency -fiverr -upwork',
+    '"need someone" "Google Sheets" ecommerce "contact" -zapier -n8n -fiverr',
+    '"looking for" workflow automation small business "contact us" -zapier -n8n',
+    '"need help" WhatsApp automation business "contact us" -agency -fiverr',
+    '"manual" orders inventory WooCommerce "contact us" -plugin -agency',
 ]
 
 SEARCH_ENGINE_DOMAINS = ("google.com", "bing.com", "duckduckgo.com", "r.jina.ai")
@@ -146,8 +152,23 @@ def search(query):
             path = parsed.path.lower()
             if (
                 not domain
+                or domain == "r.jina.ai"
                 or domain in SEARCH_ENGINE_DOMAINS
                 or path.startswith("/search")
+                or (
+                    domain in {"zapier.com", "make.com", "n8n.io", "pabbly.com"}
+                    and not domain.startswith("community.")
+                    and not domain.startswith("forum.")
+                )
+                or (
+                    domain in {
+                        "community.zapier.com",
+                        "community.make.com",
+                        "community.n8n.io",
+                        "forum.pabbly.com",
+                    }
+                    and path in {"", "/"}
+                )
                 or "skip to" in (title or "").lower()
                 or any(
                 domain == blocked or domain.endswith("." + blocked)
