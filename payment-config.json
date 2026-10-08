@@ -9,8 +9,12 @@
       "network": "BNB Smart Chain (BEP-20)",
       "address": "0x4ce7004e7127f8b2386eb355e088f127c24b3fac",
       "amounts": {
-        "note": "Exact USDT amount is quoted per order from the authoritative IDR price; do not use a fixed stale conversion."
-      }
+        "woocommerce": "22.30",
+        "whatsapp": "11.12",
+        "workflow": "13.97",
+        "validation": "1.06"
+      },
+      "quote_idr_per_usdt": 17892.1
     }
   }
 }
