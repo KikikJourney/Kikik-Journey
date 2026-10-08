@@ -20,13 +20,13 @@ The repository combines a GitHub Actions radar with deterministic scoring, reven
 
 The repository is organized as a closed acquisition-to-profit loop. Generated evidence is treated as evidence, not as proof of customers or revenue.
 
-## One-click orchestration\n\nFor a full manual operating cycle, use **`Zorathvael OS — Master Orchestrator`** in GitHub Actions. It is the single manual entry point and runs the milestones in order:\n\n`M1 DISCOVER → M2 QUALIFY/ACQUIRE → M3 PAYMENT/DELIVERY → M4 PROFIT FEEDBACK`\n\nThe orchestrator dispatches the real M1, M2, and M3 workflows sequentially and waits for each to finish; M4 is then consumed from the successful M3 workflow-run event. Each milestone keeps its own Actions run, logs, artifacts, and validation. Scheduled workflows continue to operate independently.\n\n## One-click orchestration
+## One-click orchestration
 
 For a full manual operating cycle, use **`Zorathvael OS — Master Orchestrator`** in GitHub Actions. It is the single manual entry point and runs the milestones in order:
 
 `M1 DISCOVER → M2 QUALIFY/ACQUIRE → M3 PAYMENT/DELIVERY → M4 PROFIT FEEDBACK`
 
-Each milestone remains an independent reusable workflow with its own logs and validation. Scheduled workflows continue to operate independently, so the orchestrator is specifically for a deliberate full-cycle manual run.
+The orchestrator dispatches the real M1, M2, and M3 workflows sequentially, passes the exact M1 artifact into M2, waits for each milestone to finish, and then waits for the M4 workflow triggered by the completed M3 run. Each milestone keeps its own Actions run, logs, artifacts, and validation. Scheduled workflows continue to operate independently.
 
 ## What the repository does
 
@@ -68,6 +68,7 @@ Current fixed-scope offers include:
 | WooCommerce → Google Sheets Automation | Rp399.000 | One WooCommerce store + one Google Sheet workflow |
 | WhatsApp → Google Sheets Mini Automation | Rp199.000 | One message format + one Google Sheet workflow |
 | Workflow Rescue Pilot | Rp250.000 | One workflow audit + implementation/prototype or documented automation path |
+| AI Opportunity Validation Kit | Rp19.000 | Self-serve validation kit and supporting product assets |
 
 The acquisition loop is:
 
@@ -128,13 +129,11 @@ The feedback policy is bounded and cannot bypass buyer-intent qualification, com
 
 The current ledger may legitimately contain zero revenue until a real customer payment occurs. The system never fabricates transactions to make the report look successful.
 
+M4 is triggered from completed M2/M3 workflow runs and can also be run manually for validation. Its policy output is bounded and does not override qualification, compliance, deduplication, or outreach-cap controls.
+
 ## Payment
 
-Kikik Journey accepts direct payment through:
-
-- **QRIS**
-- **Dana**
-- **USDT — BNB Smart Chain (BEP-20)**
+The automated Central Checkout currently accepts **USDT on BNB Smart Chain (BEP-20)** only. QRIS and Dana are not offered through the automated checkout because the system has no independent merchant-side verification path for them.
 
 ### USDT payment address
 
@@ -144,7 +143,7 @@ Kikik Journey accepts direct payment through:
 
 **Network:** BNB Smart Chain (BEP-20)
 
-When paying USDT, the sender must use the **BNB Smart Chain / BEP-20 network** and verify the destination address before confirming the transaction.
+When paying USDT, the sender must use the **BNB Smart Chain / BEP-20 network** and verify the destination address before confirming the transaction. The authoritative customer-facing payment amounts are maintained in `payment-config.json` and surfaced by the Central Checkout.
 
 Payment configuration is represented by `payment-config.json` and `payment-config.example.json`. Public checkout pages should expose only the payment information intended for customers; secrets and private credentials must never be committed.
 
@@ -174,6 +173,7 @@ The M1–M4 automation is split across these workflows:
 - `.github/workflows/business-acquisition.yml` — M2 qualified acquisition
 - `.github/workflows/agentmail-autopilot.yml` — M3 payment/event processing and AgentMail delivery
 - `.github/workflows/m4-profit-feedback.yml` — M4 revenue/profit feedback
+- `.github/workflows/master-orchestrator.yml` — manual M1→M2→M3→M4 orchestration
 - `.github/workflows/pages.yml` — static-site deployment and page validation
 
 The main discovery workflow is:
@@ -224,6 +224,7 @@ These outputs are evidence queues, not proof of customers or revenue.
 ```text
 .
 ├── .github/workflows/
+│   ├── master-orchestrator.yml
 │   ├── opportunity-radar.yml
 │   ├── business-acquisition.yml
 │   ├── agentmail-autopilot.yml
