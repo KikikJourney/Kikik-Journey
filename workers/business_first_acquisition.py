@@ -89,7 +89,8 @@ def make_lead(item, source):
     source_bonus = 10 if source == "public_business_web_signal" else 0
     adjusted = (base + contact_bonus + source_bonus) * feedback_multiplier(offer["name"], source)
     score = min(100, round(adjusted, 2))
-    qualified = explicit
+    qualified = explicit and source == "public_business_web_signal"
+    actionable = bool(qualified and item.get("contact_email") and item.get("website") and item.get("evidence") and item.get("commercial_intent", 0) >= 1 and item.get("reachability") == "direct_email")
     return {
         "status": "QUALIFIED" if qualified else "WATCH",
         "priority_score": score,
@@ -116,11 +117,9 @@ def make_lead(item, source):
             "If this is still relevant, I can send the exact checkout/intake path. "
             "If not relevant, reply STOP and I will not follow up."
         ).replace(",", "."),
-        "auto_contact_eligible": bool(
-            qualified
-            and source == "public_business_web_signal"
-            and item.get("contact_email")
-        ),
+        "actionable": actionable,
+        "actionability_reason": "qualified + direct public business email + website + evidence + explicit commercial intent" if actionable else "not ready for autonomous outreach",
+        "auto_contact_eligible": actionable,
         "do_not_do": [
             "Do not mass-message.",
             "Do not claim the prospect agreed to buy.",
@@ -166,6 +165,7 @@ def main():
             "qualified": sum(x["status"] == "QUALIFIED" for x in leads),
             "watch": sum(x["status"] == "WATCH" for x in leads),
             "business_email_leads": sum(bool(x.get("contact_email")) for x in leads),
+            "actionable": sum(bool(x.get("actionable")) for x in leads),
             "auto_contact_eligible": sum(bool(x["auto_contact_eligible"]) for x in leads),
         },
         "lead_loop": "BUSINESS SIGNAL → REACHABLE CONTACT → QUALIFY → OFFER → ONE-TO-ONE OUTREACH → CHECKOUT → PAYMENT → DELIVERY → FEEDBACK",
