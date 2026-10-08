@@ -9,14 +9,5 @@ Firecrawl is an optional evidence-enrichment layer for the business prospect pip
 - Missing credentials disable enrichment cleanly; per-prospect provider failures are recorded.
 - Public HTTP(S) destinations only; localhost/private IP destinations are rejected.
 
-## Postiz
-Postiz is the social distribution layer.
-- Secrets: `POSTIZ_API_KEY`, `POSTIZ_API_URL` (optional), `POSTIZ_INTEGRATION_IDS`.
-- Schedules bounded evergreen sales/education posts.
-- Checks recent Postiz content before scheduling identical posts.
-- Never publishes prospect-specific/private lead information.
-- Missing configuration disables the publisher without failing the workflow.
-- Invalid integration IDs/provider failures fail the distribution workflow so configuration errors are visible.
-- Posts route to the central checkout with source attribution.
 
 No provider SDK is added to the Python runtime; the integration surface remains stdlib-only.
