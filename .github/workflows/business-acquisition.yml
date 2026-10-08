@@ -170,10 +170,6 @@ jobs:
         with:
           name: business-acquisition-queue
           path: input
-      - uses: actions/download-artifact@v4
-        with:
-          name: business-qwen-qualification
-          path: input/qwen
       - name: Evaluate strict GitHub opportunities and outreach
         env:
           AGENT_OUTREACH_API: ${{ secrets.AGENT_OUTREACH_API }}
@@ -184,7 +180,6 @@ jobs:
         run: |
           python workers/github_opportunity_outreach.py \
             --leads input/customer_leads.json \
-            --qwen input/qwen/worker_prospect_queue.json \
             --report github_outreach_report.json
       - name: Validate GitHub outreach report
         run: |
