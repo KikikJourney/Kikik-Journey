@@ -14,7 +14,7 @@ OFFERS = [
     {
         "name": "WooCommerce → Google Sheets Automation",
         "price_idr": 399000,
-        "checkout": "sales/checkout.html?offer=woocommerce",
+        "checkout": "sales/manual_order.html?offer=woocommerce&source=outreach",
         "keywords": ["woocommerce", "google sheets", "orders", "inventory", "stock", "order data"],
         "scope": "One WooCommerce store + one Google Sheet workflow + agreed fields.",
         "timebox": "1-2 days",
@@ -22,7 +22,7 @@ OFFERS = [
     {
         "name": "WhatsApp → Google Sheets Mini Automation",
         "price_idr": 199000,
-        "checkout": "sales/checkout.html?offer=whatsapp",
+        "checkout": "sales/manual_order.html?offer=whatsapp&source=outreach",
         "keywords": ["whatsapp", "google sheets", "message", "attendance", "expense", "stock", "follow-up"],
         "scope": "One message format + one Google Sheet workflow.",
         "timebox": "1-2 days",
@@ -30,7 +30,7 @@ OFFERS = [
     {
         "name": "Workflow Rescue Pilot",
         "price_idr": 250000,
-        "checkout": "sales/checkout.html?offer=workflow",
+        "checkout": "sales/manual_order.html?offer=workflow&source=outreach",
         "keywords": ["automation", "workflow", "manual", "integration", "zapier", "make", "n8n"],
         "scope": "One workflow audit + implementation/prototype or documented automation path.",
         "timebox": "1-2 days",
