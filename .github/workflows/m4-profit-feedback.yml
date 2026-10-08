@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   feedback:
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -47,7 +47,7 @@ jobs:
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Prepare empty outcome when manually dispatched
-        if: ${{ github.event_name == 'workflow_dispatch' }}
+        if: ${{ github.event_name != 'workflow_run' }}
         run: |
           mkdir -p input
           test -f input/outreach_report.json || printf '%s\n' '{"contacted_leads":[]}' > input/outreach_report.json
