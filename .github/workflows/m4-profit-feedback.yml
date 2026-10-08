@@ -5,9 +5,13 @@ on:
     branches: [main]
     paths:
       - "workers/revenue_feedback.py"
+      - "workers/revenue_event_ledger.py"
+      - "workers/email_autopilot.py"
       - "workers/business_first_acquisition.py"
       - "workers/business_email_outreach.py"
       - "tests/test_revenue_feedback.py"
+      - "tests/test_revenue_event_ledger.py"
+      - "tests/test_email_autopilot.py"
       - "tests/test_profit_policy_integration.py"
       - ".github/workflows/m4-profit-feedback.yml"
   workflow_run:
@@ -68,8 +72,8 @@ jobs:
 
       - name: Validate and build profit policy
         run: |
-          python -m py_compile workers/revenue_feedback.py workers/business_first_acquisition.py
-          python -m unittest tests/test_revenue_feedback.py tests/test_profit_policy_integration.py tests/test_business_first_acquisition.py -v
+          python -m py_compile workers/revenue_feedback.py workers/revenue_event_ledger.py workers/email_autopilot.py workers/business_first_acquisition.py
+          python -m unittest tests/test_revenue_feedback.py tests/test_revenue_event_ledger.py tests/test_email_autopilot.py tests/test_profit_policy_integration.py tests/test_business_first_acquisition.py -v
           python workers/revenue_feedback.py \
             --events data/revenue_events.json \
             --outreach-report input/outreach_report.json \
