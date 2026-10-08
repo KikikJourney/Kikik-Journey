@@ -115,7 +115,7 @@ def build_feedback(events):
             return 1.0
         # Bayesian smoothing prevents a single sale from dominating the policy.
         smoothed = (b["paid"] + 1) / (b["contacted"] + 2)
-        value = 0.75 + 0.75 * smoothed
+        value = 0.70 + 0.80 * smoothed
         if b["profit_idr"] < 0:
             value -= 0.10
         return round(max(0.75, min(1.50, value)), 4)
