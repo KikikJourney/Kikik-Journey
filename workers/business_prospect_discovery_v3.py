@@ -91,7 +91,10 @@ def normalize_url(url):
     if not clean:
         return ""
     # Markdown search results may include a quoted link title after the URL.
-    clean = re.split(r'\\s+(?=["“])', clean, maxsplit=1)[0]
+    match = re.match(r'^(https?://\\S+)', clean)
+    if not match:
+        return ""
+    clean = match.group(1)
     parsed = urlparse(clean)
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
         return ""
