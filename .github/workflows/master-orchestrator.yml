@@ -4,34 +4,83 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
-  actions: read
-  issues: write
+  actions: write
+  contents: read
 
 concurrency:
   group: zorathvael-os-master-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  m1-discover:
-    name: "M1 · Discover & qualify"
-    uses: ./.github/workflows/opportunity-radar.yml
-    secrets: inherit
+  orchestrate:
+    name: "M1 → M2 → M3 → M4"
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Dispatch and monitor M1
+        id: m1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run opportunity-radar.yml --repo "${GITHUB_REPOSITORY}" --ref main
+          sleep 3
+          run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow opportunity-radar.yml --event workflow_dispatch --branch main --limit 1 --json databaseId --jq '.[0].databaseId')"
+          test -n "${run_id}"
+          echo "run_id=${run_id}" >> "${GITHUB_OUTPUT}"
+          gh run watch "${run_id}" --repo "${GITHUB_REPOSITORY}" --exit-status
 
-  m2-acquire:
-    name: "M2 · Qualify & outreach"
-    needs: m1-discover
-    uses: ./.github/workflows/business-acquisition.yml
-    secrets: inherit
+      - name: Dispatch and monitor M2
+        id: m2
+        env:
+          GH_TOKEN: ${{ github.token }}
+          M1_RUN_ID: ${{ steps.m1.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          gh workflow run business-acquisition.yml --repo "${GITHUB_REPOSITORY}" --ref main -f m1_run_id="${M1_RUN_ID}"
+          sleep 3
+          run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow business-acquisition.yml --event workflow_dispatch --branch main --limit 1 --json databaseId --jq '.[0].databaseId')"
+          test -n "${run_id}"
+          echo "run_id=${run_id}" >> "${GITHUB_OUTPUT}"
+          gh run watch "${run_id}" --repo "${GITHUB_REPOSITORY}" --exit-status
 
-  m3-transaction:
-    name: "M3 · Payment, delivery & events"
-    needs: m2-acquire
-    uses: ./.github/workflows/agentmail-autopilot.yml
-    secrets: inherit
+      - name: Dispatch and monitor M3
+        id: m3
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run agentmail-autopilot.yml --repo "${GITHUB_REPOSITORY}" --ref main
+          sleep 3
+          run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow agentmail-autopilot.yml --event workflow_dispatch --branch main --limit 1 --json databaseId --jq '.[0].databaseId')"
+          test -n "${run_id}"
+          echo "run_id=${run_id}" >> "${GITHUB_OUTPUT}"
+          gh run watch "${run_id}" --repo "${GITHUB_REPOSITORY}" --exit-status
 
-  m4-feedback:
-    name: "M4 · Profit feedback"
-    needs: m3-transaction
-    uses: ./.github/workflows/m4-profit-feedback.yml
-    secrets: inherit
+      - name: Wait for M4 Profit Feedback
+        env:
+          GH_TOKEN: ${{ github.token }}
+          M3_RUN_ID: ${{ steps.m3.outputs.run_id }}
+        run: |
+          set -euo pipefail
+          echo "Waiting for M4 to consume successful M3 run ${M3_RUN_ID}..."
+          for i in $(seq 1 60); do
+            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow m4-profit-feedback.yml --limit 20 --json databaseId,event,conclusion,status --jq '[.[] | select(.event=="workflow_run") | select(.status=="completed")][0].databaseId // empty')"
+            if [ -n "${run_id}" ]; then
+              conclusion="$(gh run view "${run_id}" --repo "${GITHUB_REPOSITORY}" --json conclusion --jq '.conclusion')"
+              echo "M4 run ${run_id}: ${conclusion}"
+              if [ "${conclusion}" = "success" ]; then exit 0; fi
+              if [ "${conclusion}" = "failure" ] || [ "${conclusion}" = "cancelled" ]; then exit 1; fi
+            fi
+            sleep 5
+          done
+          echo "Timed out waiting for M4."
+          exit 1
+
+      - name: Final summary
+        if: always()
+        run: |
+          echo "Zorathvael OS orchestration finished."
+          echo "M1 run: ${{ steps.m1.outputs.run_id }}"
+          echo "M2 run: ${{ steps.m2.outputs.run_id }}"
+          echo "M3 run: ${{ steps.m3.outputs.run_id }}"
