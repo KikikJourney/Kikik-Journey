@@ -1,0 +1,46 @@
+name: Integration Validation
+
+on:
+  push:
+    branches: ["**"]
+    paths:
+      - "workers/firecrawl_enrichment.py"
+      - "workers/postiz_publisher.py"
+      - "tests/test_firecrawl_enrichment.py"
+      - "tests/test_postiz_publisher.py"
+      - ".github/workflows/social-distribution.yml"
+  pull_request:
+    paths:
+      - "workers/firecrawl_enrichment.py"
+      - "workers/postiz_publisher.py"
+      - "tests/test_firecrawl_enrichment.py"
+      - "tests/test_postiz_publisher.py"
+      - ".github/workflows/social-distribution.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Compile integration code
+        run: python -m py_compile workers/firecrawl_enrichment.py workers/postiz_publisher.py
+      - name: Run integration unit tests
+        run: python -m unittest tests/test_firecrawl_enrichment.py tests/test_postiz_publisher.py -v
+      - name: Validate workflow YAML
+        run: python - <<'PY'
+import pathlib
+p=pathlib.Path(".github/workflows/social-distribution.yml")
+text=p.read_text(encoding="utf-8")
+required=("POSTIZ_API_KEY","POSTIZ_INTEGRATION_IDS","workers/postiz_publisher.py")
+missing=[x for x in required if x not in text]
+if missing:
+    raise SystemExit("missing workflow contract: "+", ".join(missing))
+print("workflow contract ok")
+PY
