@@ -1,0 +1,40 @@
+name: Social Distribution · Postiz
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "47 */6 * * *"
+permissions:
+  contents: read
+concurrency:
+  group: social-distribution-v1-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Run bounded Postiz publisher
+        env:
+          POSTIZ_API_KEY: ${{ secrets.POSTIZ_API_KEY }}
+          POSTIZ_API_URL: ${{ secrets.POSTIZ_API_URL }}
+          POSTIZ_INTEGRATION_IDS: ${{ secrets.POSTIZ_INTEGRATION_IDS }}
+          CHECKOUT_BASE_URL: "https://kikikjourney.github.io/Kikik-Journey/sales/manual-order.html?source=postiz"
+        run: python workers/postiz_publisher.py
+      - name: Validate publisher report
+        if: always()
+        run: |
+          python -m json.tool postiz_report.json >/dev/null
+          python -m py_compile workers/postiz_publisher.py
+          python -m unittest tests/test_postiz_publisher.py -v
+      - name: Upload publisher report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: postiz-distribution-report
+          path: postiz_report.json
