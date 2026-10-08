@@ -6,13 +6,15 @@ The repository combines a GitHub Actions radar with deterministic scoring, reven
 
 **Operating loop**
 
-`DISCOVER → EVIDENCE → SCORE → PACKAGE → QUALIFY → OFFER → PAYMENT → INTAKE → DELIVERY`
+`M1 DISCOVER → M2 QUALIFY/ACQUIRE → M3 PAYMENT/INTAKE/DELIVERY → M4 PROFIT FEEDBACK → M2 PRIORITY UPDATE`
+
+The repository is organized as a closed acquisition-to-profit loop. Generated evidence is treated as evidence, not as proof of customers or revenue.
 
 This repository is deliberately separate from [Crypto-Scanner](https://github.com/KikikJourney/Crypto-Scanner).
 
 ## What the repository does
 
-### 1. Opportunity Radar
+### 1. M1 — Opportunity Radar
 
 `opportunity_radar.py` searches public GitHub data for recently active AI, LLM, automation, and AI-agent projects, then evaluates:
 
@@ -39,7 +41,7 @@ Current offer hypotheses include:
 
 These are test hypotheses, not guaranteed market prices.
 
-### 3. Customer Acquisition
+### 3. M2 — Customer Acquisition
 
 `customer_acquisition.py` matches public buyer-request signals to fixed-scope offers.
 
@@ -56,6 +58,48 @@ The acquisition loop is:
 `PUBLIC SIGNAL → QUALIFY → MATCH OFFER → RELEVANT ONE-TO-ONE RESPONSE → CHECKOUT → PAYMENT → INTAKE → DELIVERY`
 
 The system does not treat a public request as consent, a customer, or a completed sale.
+
+## M3 — Manual Order, Payment Verification, and AgentMail Delivery
+
+The public conversion path is:
+
+`SOCIAL/GITHUB TRAFFIC → MANUAL ORDER → PAYMENT VERIFICATION → PAID → AGENTMAIL DELIVERY → M4 PROFIT FEEDBACK`
+
+The public manual-order page is:
+
+`sales/manual-order.html`
+
+A manual order is intake only. **AgentMail is a delivery channel, not the payment verifier.** A customer is marked `PAID` only after an independent payment verification succeeds.
+
+For verified USDT payments:
+
+- the payment is checked against the expected amount and configured recipient;
+- a `paid` revenue event is emitted;
+- AgentMail sends the delivery/intake email to the supplied contact email;
+- a `delivered` event is emitted;
+- M4 consumes the revenue events.
+
+QRIS and Dana may be displayed as payment methods, but the automation does not invent merchant-side confirmation. Those orders remain pending until an independent verification path exists.
+
+### Revenue event ledger
+
+`workers/revenue_event_ledger.py` provides an idempotent append-only event ledger. M3 payment/delivery events can therefore be consumed by M4 without double-counting.
+
+No passwords, OTPs, API keys, seed phrases, private keys, or full credentials are collected through the order flow.
+
+## M4 — Profit Feedback
+
+`workers/revenue_feedback.py` consumes acquisition and revenue outcomes to produce:
+
+- revenue and profit totals;
+- contacted, paid, delivered, and refund metrics;
+- offer-level performance;
+- source-level performance;
+- bounded policy multipliers for future acquisition prioritization.
+
+The feedback policy is bounded and cannot bypass buyer-intent qualification, compliance, Qwen screening, deduplication, or outreach caps.
+
+The current ledger may legitimately contain zero revenue until a real customer payment occurs. The system never fabricates transactions to make the report look successful.
 
 ## Payment
 
@@ -96,7 +140,17 @@ The landing page currently presents the paid offers at Rp399.000, Rp199.000, Rp2
 
 ## GitHub Actions automation
 
-The main workflow is:
+The M1–M4 automation is split across these workflows:
+
+- `.github/workflows/opportunity-radar.yml` — M1 opportunity discovery
+- `.github/workflows/business-acquisition.yml` — M2 qualified acquisition
+- `.github/workflows/agentmail-autopilot.yml` — M3 payment/event processing and AgentMail delivery
+- `.github/workflows/m4-profit-feedback.yml` — M4 revenue/profit feedback
+- `.github/workflows/pages.yml` — static-site deployment and page validation
+
+
+
+The main discovery workflow is:
 
 `.github/workflows/opportunity-radar.yml`
 
@@ -120,6 +174,14 @@ A second-pass worker then uses a local **Qwen3 1.7B GGUF** model through `llama.
 
 ## Generated outputs
 
+M3/M4 additionally maintain:
+
+- `data/revenue_events.json` — append-only M3 revenue event state
+- `data/profit_policy.json` — bounded M4 acquisition policy
+- `profit_report.json` — current revenue/profit feedback report
+
+
+
 The workflow produces and validates:
 
 - `opportunity_report.json`
@@ -138,7 +200,11 @@ These outputs are evidence queues, not proof of customers or revenue.
 ```text
 .
 ├── .github/workflows/
-│   └── opportunity-radar.yml
+│   ├── opportunity-radar.yml
+│   ├── business-acquisition.yml
+│   ├── agentmail-autopilot.yml
+│   ├── m4-profit-feedback.yml
+│   └── pages.yml
 ├── assets/
 ├── docs/
 │   └── 9router-integration.md
@@ -150,6 +216,7 @@ These outputs are evidence queues, not proof of customers or revenue.
 │   └── ai-opportunity-validation-kit/
 ├── sales/
 │   ├── README.md
+│   ├── manual-order.html
 │   ├── checkout.html
 │   ├── payment-setup.md
 │   ├── pilot-checkout.html
@@ -163,6 +230,9 @@ These outputs are evidence queues, not proof of customers or revenue.
 ├── tools/
 │   └── workflow-diagnostic.html
 ├── workers/
+│   ├── manual_order_gateway.py
+│   ├── revenue_event_ledger.py
+│   └── revenue_feedback.py
 ├── customer_acquisition.py
 ├── opportunity_packager.py
 ├── opportunity_radar.py
@@ -201,4 +271,4 @@ python -m py_compile opportunity_radar.py opportunity_packager.py customer_acqui
 python -m unittest discover -s tests -p "test_*.py" -v
 ```
 
-The authoritative automation configuration is the GitHub Actions workflow under `.github/workflows/`.
+The authoritative automation configuration is the GitHub Actions configuration under `.github/workflows/`. M1–M4 status is determined from actual workflow runs and generated artifacts, not README claims.
