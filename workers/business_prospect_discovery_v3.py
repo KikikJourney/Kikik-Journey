@@ -120,7 +120,7 @@ def read(url):
                 body, final = get(clean_url)
             else:
                 body, final = get("https://r.jina.ai/" + clean_url)
-            return body, final
+            return body, clean_url
         except (HTTPError, URLError, TimeoutError, UnicodeError, ValueError, InvalidURL):
             if attempt == 0:
                 time.sleep(0.3)
