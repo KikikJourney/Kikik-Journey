@@ -73,7 +73,7 @@ def offer_from(text):
 
 def parse(text):
     source=re.sub(r"[^a-z0-9._-]","",(field(text,"Source") or "direct").lower())[:40] or "direct"
-    return {"ref":ref(text),"contact_email":email(field(text,"Contact email")),"offer":offer_from(text),"source":source,"payment":field(text,"Payment method") or "USDT"}
+    return {"ref":ref(text),"contact_email":email(field(text,"Contact email")),"offer":offer_from(text),"source":source,"payment":field(text,"Payment method") or "USDT","tx_hash":tx_hash(field(text,"Transaction hash") or text)}
 
 def github_issue(title,body):
     if not GITHUB_TOKEN:return None
@@ -122,16 +122,15 @@ def process_order(mid,text):
     contact_hash=hashlib.sha256(p["contact_email"].encode()).hexdigest()[:16]
     existing=github_find(p["ref"])
     if not existing:
-        github_issue(f"[MANUAL ORDER PENDING] {p['ref']} — {title}",f"Order reference: {p['ref']}\nStatus: PENDING_PAYMENT\nOffer key: {p['offer']}\nSource: {p['source']}\nPayment method: {p['payment']}\nContact hash: {contact_hash}\nContact email is intentionally not stored in the public GitHub record.")
-    msg=(f"Manual order {p['ref']} received.\n\nOffer: {title}\nPayment method: {p['payment']}\nSource: {p['source']}\n\nUSDT: {OFFERS[p['offer']][1]} USDT on BNB Smart Chain (BEP-20). Reply with the transaction hash and order reference after payment.\n\nPayment is independently verified before PAID. Delivery is sent to {p['contact_email']}.")
-
+        github_issue(f"[MANUAL ORDER PENDING] {p["ref"]} — {title}",f"Order reference: {p["ref"]}\nStatus: PENDING_PAYMENT\nOffer key: {p["offer"]}\nSource: {p["source"]}\nPayment method: {p["payment"]}\nContact hash: {contact_hash}\nContact email is intentionally not stored in the public GitHub record.")
     append_events([{"event_id":"order-"+p["ref"].lower(),"event_type":"order_created","source":p["source"],"offer":p["offer"],"order_ref":p["ref"],"amount_idr":OFFERS[p["offer"]][2],"cost_idr":0}])
+    if p["tx_hash"]:
+        return process_payment(mid,text,order=p)
     return {"status":"order_created","ref":p["ref"]}
-
-def process_payment(mid,text):
+def process_payment(mid,text,order=None):
     p_ref=ref(text)
     if not p_ref:return {"status":"not_manual_payment"}
-    order=find_order(p_ref)
+    order=order or find_order(p_ref)
     if not order:return {"status":"manual_order_not_found","ref":p_ref}
     h=tx_hash(text); amount=OFFERS[order["offer"]][1]
     if not h:return {"status":"payment_missing_tx","ref":p_ref}
@@ -148,7 +147,6 @@ def process_payment(mid,text):
         delivery += f"AI Opportunity Validation Kit: {VALIDATION_KIT_URL}\n\nThe digital delivery is ready immediately."
     else:
         delivery += f"Your {OFFERS[order['offer']][0]} order is confirmed. Automated delivery/intake is now active. Reply to this email with non-sensitive project requirements."
-    append_events([{"event_id":"delivered-"+p_ref,"event_type":"delivered","source":order["source"],"offer":order["offer"],"order_ref":p_ref,"amount_idr":0,"cost_idr":0}])
     return {"status":"paid_and_ready_for_delivery","ref":p_ref,"delivery":{"to":order["contact_email"],"subject":f"Order {p_ref} — PAYMENT VERIFIED","body":delivery,"labels":["kj-paid","kj-delivery"]}}
 
 
@@ -156,7 +154,9 @@ def main():
     results={}
     for item in manual_messages():
         mid=item.get("message_id")
-        if not mid or "kj-processed" in set(item.get("labels",[])):continue
+        if not mid:continue
+        labels=set(item.get("labels",[]))
+        if "kj-processed" in labels and "kj-awaiting-confirmation" not in labels:continue
         try:
             subject=(item.get("subject") or "").upper()
             if "MANUAL ORDER" not in subject and "KJ-MANUAL-" not in subject:
@@ -164,14 +164,28 @@ def main():
             d=load_detail(mid); text="\n".join(str(d.get(k,"")) for k in ("subject","extracted_text","text"))
             kind="manual_order" if "manual order" in text.lower() else ("payment" if ref(text) else "")
             if kind=="manual_order":
-                status=process_order(mid,text); mark(mid,"manual-order")
+                status=process_order(mid,text)
+                if status.get("status")=="paid_and_ready_for_delivery":
+                    d=status["delivery"]
+                    send(d["to"],d["subject"],d["body"],d["labels"])
+                    order_data=parse(text)
+                    append_events([{"event_id":"delivered-"+status["ref"],"event_type":"delivered","source":order_data["source"],"offer":order_data["offer"],"order_ref":status["ref"],"amount_idr":0,"cost_idr":0}])
+                    mark(mid,"manual-order")
+                elif status.get("status")=="insufficient_confirmations":
+                    mark(mid,"kj-awaiting-confirmation")
+                elif status.get("status") in ("payment_rejected","payment_missing_tx"):
+                    mark(mid,"manual-order")
+                else:
+                    mark(mid,"manual-order")
             elif kind=="payment":
                 status=process_payment(mid,text)
                 if status.get("status")=="paid_and_ready_for_delivery":
                     d=status["delivery"]
                     send(d["to"],d["subject"],d["body"],d["labels"])
+                    order_data=find_order(status["ref"])
+                    append_events([{"event_id":"delivered-"+status["ref"],"event_type":"delivered","source":order_data["source"],"offer":order_data["offer"],"order_ref":status["ref"],"amount_idr":0,"cost_idr":0}])
                     mark(mid,"manual-payment")
-                elif status.get("status") not in ("payment_rejected","payment_missing_tx","manual_order_not_found"):
+                elif status.get("status") not in ("payment_rejected","payment_missing_tx","manual_order_not_found","insufficient_confirmations"):
                     mark(mid,"manual-payment")
             else:continue
             results[status["status"]]=results.get(status["status"],0)+1
