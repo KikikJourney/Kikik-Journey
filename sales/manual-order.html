@@ -39,7 +39,7 @@ textarea{min-height:110px;resize:vertical}.price{font-size:30px;font-weight:800}
 <strong>USDT payment</strong>
 <p>Network: BNB Smart Chain (BEP-20)</p>
 <p>Address: <code>0x4ce7004e7127f8b2386eb355e088f127c24b3fac</code></p>
-<p class="small muted">The order price above is authoritative in IDR. Do not assume a fixed USDT equivalent; the exact USDT amount is confirmed in the order/payment confirmation before you send funds.</p>
+<p class="small muted">The order price above is authoritative in IDR. Current USDT quote: 1 USDT ≈ Rp17,892.10. The checkout shows the quoted USDT amount for the selected offer; confirm the amount in the order email before sending.</p>
 </div>
 </div>
 <div class="card"><button id="order">Submit order request</button><p id="result" class="small"></p></div>
@@ -47,10 +47,10 @@ textarea{min-height:110px;resize:vertical}.price{font-size:30px;font-weight:800}
 <script>
 const source=(new URLSearchParams(location.search).get('source')||'direct').trim().toLowerCase().replace(/[^a-z0-9._-]/g,'').slice(0,40)||'direct';
 const offers={
-woocommerce:{name:'WooCommerce → Google Sheets pilot',idr:'Rp399.000',scope:'One WooCommerce store → one Google Sheet workflow.'},
-whatsapp:{name:'WhatsApp → Google Sheets mini automation',idr:'Rp199.000',scope:'One message workflow → one Google Sheet.'},
-workflow:{name:'Workflow Rescue Pilot',idr:'Rp250.000',scope:'One narrow workflow audit plus implementation/prototype or documented automation path.'},
-validation:{name:'AI Opportunity Validation Kit',idr:'Rp19.000',scope:'Digital validation kit for evidence, scoring and paid-pilot packaging.'}};
+woocommerce:{name:'WooCommerce → Google Sheets pilot',idr:'Rp399.000',usdt:'22.30',scope:'One WooCommerce store → one Google Sheet workflow.'},
+whatsapp:{name:'WhatsApp → Google Sheets mini automation',idr:'Rp199.000',usdt:'11.12',scope:'One message workflow → one Google Sheet.'},
+workflow:{name:'Workflow Rescue Pilot',idr:'Rp250.000',usdt:'13.97',scope:'One narrow workflow audit plus implementation/prototype or documented automation path.'},
+validation:{name:'AI Opportunity Validation Kit',idr:'Rp19.000',usdt:'1.06',scope:'Digital validation kit for evidence, scoring and paid-pilot packaging.'}};
 function refresh(){const o=offers[offer.value];scope.textContent=o.scope;price.textContent=o.idr+' · '+o.usdt+' USDT';}
 const offer=document.getElementById('offer'),scope=document.getElementById('scope'),price=document.getElementById('price');offer.addEventListener('change',refresh);refresh();
 document.getElementById('order').onclick=()=>{
