@@ -47,8 +47,8 @@ def recent_posts():
     now=datetime.now(timezone.utc); start=(now-timedelta(days=LOOKBACK_DAYS)).isoformat().replace("+00:00","Z"); end=(now+timedelta(minutes=5)).isoformat().replace("+00:00","Z")
     return "\n".join(collect_text(api("/public/v1/posts?"+urlencode({"startDate":start,"endDate":end}))))
 
-def schedule(content):
-    when=(datetime.now(timezone.utc)+timedelta(minutes=15)).isoformat().replace("+00:00","Z")
+def schedule(content, offset_days):
+    when=(datetime.now(timezone.utc)+timedelta(minutes=15)+timedelta(days=offset_days)).isoformat().replace("+00:00","Z")
     body={"type":"schedule","date":when,"shortLink":False,"tags":[],"posts":[{"integration":{"id":i},"value":[{"content":content}],"settings":{}} for i in INTEGRATIONS]}
     return api("/public/v1/posts","POST",body)
 
@@ -60,7 +60,7 @@ def main():
         print(json.dumps(report)); return
     try:
         integrations=api("/public/v1/integrations")
-        rows=integrations.get("integrations",integrations if isinstance(integrations,list) else [])
+        rows=integrations.get("integrations",integrations.get("data",[])) if isinstance(integrations,dict) else integrations
         known={str(x["id"]) for x in rows if isinstance(x,dict) and x.get("id")}
         missing=sorted(set(INTEGRATIONS)-known)
         if missing: raise RuntimeError("Configured Postiz integration IDs not found: "+",".join(missing))
@@ -69,11 +69,11 @@ def main():
         report["status"]="provider_check_failed"; report["failures"].append({"stage":"preflight","error_type":type(exc).__name__})
         with open(REPORT,"w") as h: json.dump(report,h,indent=2)
         raise SystemExit(1)
-    for title,content in CONTENT:
+    for index,(title,content) in enumerate(CONTENT):
         if fingerprint(content) in recent or content in recent:
             report["skipped_duplicate"]+=1; continue
         try:
-            schedule(content); report["scheduled"]+=1; recent+="\n"+content
+            schedule(content,index); report["scheduled"]+=1; recent+="\n"+content
         except (HTTPError,URLError,TimeoutError,ValueError) as exc:
             report["failures"].append({"title":title,"error_type":type(exc).__name__}); break
     report["status"]="completed" if not report["failures"] else "partial_failure"
