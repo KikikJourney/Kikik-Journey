@@ -18,6 +18,7 @@ on:
     workflows: ["Business Acquisition Engine", "Autonomous AgentMail Sales Inbox"]
     types: [completed]
   workflow_dispatch:
+  workflow_call:
 
 permissions:
   actions: read
@@ -29,7 +30,7 @@ concurrency:
 
 jobs:
   feedback:
-    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'workflow_call' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -41,7 +42,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Download acquisition outcome
+      - name: Download acquisition outcome from completed workflow
         if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Business Acquisition Engine' }}
         uses: actions/download-artifact@v5
         with:
@@ -50,7 +51,7 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download M3 revenue events
+      - name: Download M3 revenue events from completed workflow
         if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Autonomous AgentMail Sales Inbox' }}
         uses: actions/download-artifact@v5
         with:
@@ -58,12 +59,28 @@ jobs:
           path: input
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download acquisition outcome from orchestrator run
+        if: ${{ github.event_name == 'workflow_call' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: business-outreach-report
+          path: input
+
+      - name: Download M3 revenue events from orchestrator run
+        if: ${{ github.event_name == 'workflow_call' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: m3-revenue-events
+          path: input
+
       - name: Prepare empty inputs for code/manual validation
-        if: ${{ github.event_name != 'workflow_run' }}
+        if: ${{ github.event_name != 'workflow_run' && github.event_name != 'workflow_call' }}
         run: |
           mkdir -p input
           test -f input/outreach_report.json || printf '%s\n' '{"contacted_leads":[]}' > input/outreach_report.json
           test -f input/revenue_events.json || printf '%s\n' '{"events":[]}' > input/revenue_events.json
+
       - name: Normalize M3/M2 inputs
         run: |
           mkdir -p input
