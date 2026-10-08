@@ -7,6 +7,7 @@ on:
       - "data/**"
       - "profit_report.json"
   workflow_dispatch:
+  workflow_call:
   schedule:
     - cron: "7 */2 * * *"
 
