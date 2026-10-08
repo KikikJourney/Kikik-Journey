@@ -25,6 +25,17 @@ class BusinessProspectDiscoveryV3Tests(unittest.TestCase):
             "https://example.com/path?x=1",
         )
 
+    def test_read_preserves_original_source_url(self):
+        source = "https://community.zapier.com/how-do-i-3/example-53828"
+        with patch.object(
+            discovery,
+            "get",
+            return_value=("Title: Example", "https://r.jina.ai/" + source),
+        ):
+            body, final = discovery.read(source)
+        self.assertEqual(body, "Title: Example")
+        self.assertEqual(final, source)
+
     def test_search_strips_markdown_link_title_from_candidate_url(self):
         body = (
             '[Example request](https://example.com/request-1 "Example request")\n'
