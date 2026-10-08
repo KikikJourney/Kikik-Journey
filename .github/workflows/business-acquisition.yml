@@ -3,6 +3,9 @@ name: Business Acquisition Engine
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "data/**"
+      - "profit_report.json"
   workflow_dispatch:
   schedule:
     - cron: "7 */2 * * *"
