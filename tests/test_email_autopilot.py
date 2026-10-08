@@ -7,8 +7,8 @@ class EmailAutopilotTests(unittest.TestCase):
     def test_offer_interest(self): self.assertEqual(classify("I need WooCommerce to Google Sheets"),"offer_interest")
     def test_general_is_not_auto_sold(self): self.assertEqual(classify("Hello, just saying hi"),"general")
     def test_usdt_offer_amounts(self):
-        self.assertEqual(str(payment_amount("I paid", "woocommerce")), "5")
-        self.assertEqual(str(payment_amount("I paid", "validation")), "0.25")
+        self.assertEqual(str(payment_amount("I paid", "woocommerce")), "22.30")
+        self.assertEqual(str(payment_amount("I paid", "validation")), "1.06")
     def test_order_reference(self):
         self.assertEqual(explicit_order_ref("Order KJ-ABC123 paid", "KJ-FALLBACK"), "KJ-ABC123")
     def test_tx_hash(self):
