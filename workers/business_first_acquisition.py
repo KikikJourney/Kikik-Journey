@@ -130,7 +130,6 @@ def make_lead(item, source):
 
 
 def main():
-    report = json.loads(open(REPORT, encoding="utf-8").read())
     business = json.loads(open(BUSINESS, encoding="utf-8").read())
     business_requests = []
     for item in business.get("prospects", []):
