@@ -158,8 +158,16 @@ def main():
                 continue
             d=load_detail(mid); text="\\n".join(str(d.get(k,"")) for k in ("subject","extracted_text","text"))
             kind="manual_order" if "manual order" in text.lower() else ("payment" if ref(text) else "")
-            if kind=="manual_order":status=process_order(mid,text); mark(mid,"manual-order")
-            elif kind=="payment":status=process_payment(mid,text); mark(mid,"manual-payment")
+            if kind=="manual_order":
+                status=process_order(mid,text); mark(mid,"manual-order")
+            elif kind=="payment":
+                status=process_payment(mid,text)
+                if status.get("status")=="paid_and_ready_for_delivery":
+                    d=status["delivery"]
+                    send(d["to"],d["subject"],d["body"],d["labels"])
+                    mark(mid,"manual-payment")
+                elif status.get("status") not in ("payment_rejected","payment_missing_tx","manual_order_not_found"):
+                    mark(mid,"manual-payment")
             else:continue
             results[status["status"]]=results.get(status["status"],0)+1
         except Exception as exc:
