@@ -16,6 +16,9 @@ try:
 except ModuleNotFoundError:
     from verify_usdt_payment import verify_payment
 
+API="https://api.agentmail.to/v0"
+INBOX=os.getenv("AGENTMAIL_INBOX_EMAIL","kikikjourney@agentmail.to")
+
 GITHUB_TOKEN=os.getenv("GITHUB_TOKEN")
 GITHUB_REPO=os.getenv("GITHUB_REPOSITORY","KikikJourney/Kikik-Journey")
 PAYMENT_RECIPIENT=os.getenv("PAYMENT_RECIPIENT","0x4ce7004e7127f8b2386eb355e088f127c24b3fac")
