@@ -16,7 +16,7 @@ import re
 import urllib.request
 from datetime import datetime, timezone
 
-MAX_PER_RUN = int(os.getenv("KJ_GITHUB_MAX_OUTREACH_PER_RUN", "1"))
+MAX_PER_RUN = int(os.getenv("KJ_GITHUB_MAX_OUTREACH_PER_RUN", "3"))
 MIN_SCORE = float(os.getenv("KJ_GITHUB_MIN_OUTREACH_SCORE", "80"))
 ACTIVE_DAYS = int(os.getenv("KJ_GITHUB_ACTIVE_DAYS", "90"))
 CHECKOUT = os.getenv(
