@@ -14,6 +14,7 @@ import json
 import os
 import re
 import urllib.request
+from urllib.parse import urlencode
 from datetime import datetime, timezone
 
 MAX_PER_RUN = int(os.getenv("KJ_GITHUB_MAX_OUTREACH_PER_RUN", "3"))
@@ -30,6 +31,16 @@ INTENT = ("need help", "need someone", "looking for", "need a developer", "hire"
           "need this built", "need this fixed", "seeking", "can someone", "recommend a developer")
 PAIN = ("bug", "broken", "error", "failing", "manual", "automation", "workflow",
         "integration", "inventory", "orders", "deployment", "ci", "api", "slow", "maintenance")
+
+BUYER_QUERIES = (
+    '"looking for" automation',
+    '"need help" automation',
+    '"need a developer" automation',
+    '"looking for" "google sheets" integration',
+    '"woocommerce" "google sheets" automation',
+    '"whatsapp" automation "google sheets"',
+)
+MAX_DISCOVERY = int(os.getenv("KJ_GITHUB_MAX_DISCOVERY_CANDIDATES", "25"))
 
 
 def api(url, method="GET", payload=None):
@@ -49,6 +60,67 @@ def api(url, method="GET", payload=None):
     with urllib.request.urlopen(req, timeout=20) as response:
         raw = response.read().decode()
         return json.loads(raw) if raw else {}
+
+
+
+def search_buyer_requests():
+    """Discover GitHub buyer requests independently of the public-web/email channel."""
+    found = {}
+    for query in BUYER_QUERIES:
+        data = api("https://api.github.com/search/issues?" + urlencode({
+            "q": query + " type:issue is:open",
+            "sort": "updated",
+            "order": "desc",
+            "per_page": 15,
+        }))
+        for item in data.get("items", []):
+            if item.get("pull_request"):
+                continue
+            url = item.get("html_url")
+            if url:
+                found[url] = item
+
+    candidates = []
+    for item in found.values():
+        title = item.get("title") or ""
+        body = item.get("body") or ""
+        low = f"{title} {body}".lower()
+        intent_hits = sum(x in low for x in INTENT)
+        pain_hits = sum(x in low for x in PAIN)
+        if intent_hits < 1 or pain_hits < 1:
+            continue
+        offer = match_offer(low)
+        candidates.append({
+            "status": "QUALIFIED",
+            "source": "public_buyer_request",
+            "url": item.get("html_url"),
+            "title": title,
+            "evidence": f"{title} {body}"[:3000],
+            "matched_offer": offer,
+            "checkout_path": checkout_path_for_offer(offer),
+            "priority_score": min(100, 45 + intent_hits * 12 + pain_hits * 5),
+            "commercial_intent": intent_hits,
+            "updated_at": item.get("updated_at"),
+        })
+    candidates.sort(key=lambda x: x["priority_score"], reverse=True)
+    return candidates[:MAX_DISCOVERY]
+
+
+def match_offer(text):
+    low = (text or "").lower()
+    if "woocommerce" in low and "google sheets" in low:
+        return "WooCommerce → Google Sheets Automation"
+    if "whatsapp" in low and "google sheets" in low:
+        return "WhatsApp → Google Sheets Mini Automation"
+    return "Workflow Rescue Pilot"
+
+
+def checkout_path_for_offer(offer):
+    return {
+        "WooCommerce → Google Sheets Automation": "sales/manual_order.html?offer=woocommerce",
+        "WhatsApp → Google Sheets Mini Automation": "sales/manual_order.html?offer=whatsapp",
+        "Workflow Rescue Pilot": "sales/manual_order.html?offer=workflow",
+    }[offer]
 
 
 def issue_ref(url):
@@ -120,16 +192,21 @@ def main():
     p.add_argument("--qwen", default=None)
     p.add_argument("--report", default="github_outreach_report.json")
     args = p.parse_args()
-    leads = json.load(open(args.leads, encoding="utf-8")).get("leads", [])
-    if args.qwen:
-        qwen = json.load(open(args.qwen, encoding="utf-8"))
-        allowed = {(x.get("source_request") or {}).get("url", "").rstrip("/")
-                   for x in qwen.get("results", []) if x.get("decision") == "QUALIFIED"}
-        leads = [x for x in leads if x.get("url", "").rstrip("/") in allowed]
+    supplied_leads = json.load(open(args.leads, encoding="utf-8")).get("leads", []) if os.path.exists(args.leads) else []
+    discovered = search_buyer_requests()
+    # GitHub outreach owns GitHub discovery. Public-web/email leads are never used
+    # as a substitute for GitHub buyer-request discovery.
+    leads = discovered
+    if supplied_leads:
+        github_supplied = [x for x in supplied_leads if x.get("source") == "public_buyer_request"]
+        by_url = {x.get("url", "").rstrip("/"): x for x in github_supplied if x.get("url")}
+        for lead in discovered:
+            by_url.setdefault(lead["url"].rstrip("/"), lead)
+        leads = list(by_url.values())
 
     report = {"eligible": 0, "contacted": 0, "skipped": {}, "attempts": [],
               "max_per_run": MAX_PER_RUN, "min_score": MIN_SCORE,
-              "active_days": ACTIVE_DAYS, "policy": "strict active-repository + opportunity/probability gate; one-to-one; deduplicated; fail-closed"}
+              "active_days": ACTIVE_DAYS, "policy": "GitHub-only buyer-request discovery; strict active-repository + opportunity/probability gate; one-to-one; deduplicated; fail-closed"}
     for lead in leads:
         if report["contacted"] >= MAX_PER_RUN:
             break
