@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  workflow_call:
   schedule:
     - cron: "*/5 * * * *"
 
@@ -33,7 +34,8 @@ jobs:
       - name: Prepare M3 revenue event ledger
         run: |
           mkdir -p data
-          test -f data/revenue_events.json || printf '%s\n' '{"events":[]}' > data/revenue_events.json
+          test -f data/revenue_events.json || printf '%s
+' '{"events":[]}' > data/revenue_events.json
 
       - name: Process manual orders and delivery first
         env:
