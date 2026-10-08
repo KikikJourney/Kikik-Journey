@@ -306,7 +306,8 @@ def main():
     prospects = []
     seen_urls = set()
     domain_counts = {}
-    for query in QUERIES:
+    max_queries = int(os.getenv("KJ_MAX_DISCOVERY_QUERIES", "6"))
+    for query in QUERIES[:max_queries]:
         for item in search(query):
             domain = urlparse(item["url"]).netloc.lower().removeprefix("www.")
             url_key = item["url"].rstrip("/").lower()
