@@ -124,6 +124,7 @@ jobs:
       - name: Send bounded business outreach
         env:
           AGENTMAIL_API_KEY: ${{ secrets.AGENTMAIL_API_KEY }}
+          KJ_POSTAL_ADDRESS: ${{ secrets.KJ_POSTAL_ADDRESS }}
           AGENTMAIL_INBOX_EMAIL: kikikjourney@agentmail.to
           KJ_MAX_OUTREACH_PER_RUN: "3"
         run: |
