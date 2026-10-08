@@ -1,4 +1,5 @@
-name: Autonomous AgentMail Sales Inbox
+name: M3 · AgentMail Transaction & Delivery Engine
+run-name: "M3 · AgentMail Transaction & Delivery — ${{ github.event_name }}"
 
 on:
   push:
@@ -8,8 +9,6 @@ on:
       - "profit_report.json"
   workflow_dispatch:
   workflow_call:
-  schedule:
-    - cron: "*/5 * * * *"
 
 permissions:
   contents: read
