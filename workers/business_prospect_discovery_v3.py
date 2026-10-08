@@ -11,7 +11,8 @@ from urllib.error import HTTPError, URLError
 
 LIMIT = int(os.getenv("KJ_BUSINESS_DISCOVERY_LIMIT", "12"))
 SEARCH_TIMEOUT = int(os.getenv("KJ_DISCOVERY_TIMEOUT_SECONDS", "8"))
-UA = "KikikJourney-BusinessProspector/2.1"
+UA = "KikikJourney-BusinessProspector/2.2"
+MAX_PER_DOMAIN = int(os.getenv("KJ_MAX_PROSPECTS_PER_DOMAIN", "4"))
 
 QUERIES = [
     '"need help" automation "google sheets" ecommerce -github -fiverr -upwork',
@@ -99,7 +100,7 @@ def read(url):
 def search(query):
     found = []
     seen = set()
-    q = quote_plus(query.replace("site:community.make.com/t/", "").replace("site:community.n8n.io/t/", "").replace("site:community.zapier.com", "").replace("site:forum.pabbly.com", ""))
+    q = quote_plus(query)
     targets = []
     if "make.com" in query:
         targets.append("https://community.make.com/search?q=" + q)
@@ -133,11 +134,13 @@ def search(query):
             )
             ):
                 continue
-            if clean_url in seen:
+            parsed_url = urlparse(clean_url)
+            canonical = parsed_url._replace(query="", fragment="").geturl().rstrip("/")
+            if canonical.lower() in seen:
                 continue
-            seen.add(clean_url)
-            found.append({"title": html.unescape(title), "url": clean_url})
-            if len(found) >= 8:
+            seen.add(canonical.lower())
+            found.append({"title": html.unescape(title), "url": canonical})
+            if len(found) >= 16:
                 return found
     return found
 
@@ -246,13 +249,16 @@ def inspect(item, query):
 
 def main():
     prospects = []
-    domains = set()
+    seen_urls = set()
+    domain_counts = {}
     for query in QUERIES:
         for item in search(query):
             domain = urlparse(item["url"]).netloc.lower().removeprefix("www.")
-            if domain in domains:
+            url_key = item["url"].rstrip("/").lower()
+            if url_key in seen_urls or domain_counts.get(domain, 0) >= MAX_PER_DOMAIN:
                 continue
-            domains.add(domain)
+            seen_urls.add(url_key)
+            domain_counts[domain] = domain_counts.get(domain, 0) + 1
             hit = inspect(item, query)
             if hit:
                 prospects.append(hit)
