@@ -14,7 +14,7 @@ OFFERS = [
     {
         "name": "WooCommerce → Google Sheets Automation",
         "price_idr": 399000,
-        "checkout": "sales/checkout.html?offer=woocommerce",
+        "checkout": "sales/manual_order.html?offer=woocommerce&source=outreach",
         "keywords": ["woocommerce", "google sheets", "orders", "inventory", "stock", "order data"],
         "scope": "One WooCommerce store + one Google Sheet workflow + agreed fields.",
         "timebox": "1-2 days",
@@ -22,7 +22,7 @@ OFFERS = [
     {
         "name": "WhatsApp → Google Sheets Mini Automation",
         "price_idr": 199000,
-        "checkout": "sales/checkout.html?offer=whatsapp",
+        "checkout": "sales/manual_order.html?offer=whatsapp&source=outreach",
         "keywords": ["whatsapp", "google sheets", "message", "attendance", "expense", "stock", "follow-up"],
         "scope": "One message format + one Google Sheet workflow.",
         "timebox": "1-2 days",
@@ -30,7 +30,7 @@ OFFERS = [
     {
         "name": "Workflow Rescue Pilot",
         "price_idr": 250000,
-        "checkout": "sales/checkout.html?offer=workflow",
+        "checkout": "sales/manual_order.html?offer=workflow&source=outreach",
         "keywords": ["automation", "workflow", "manual", "integration", "zapier", "make", "n8n"],
         "scope": "One workflow audit + implementation/prototype or documented automation path.",
         "timebox": "1-2 days",
@@ -89,7 +89,7 @@ def make_lead(item, source):
     source_bonus = 10 if source == "public_business_web_signal" else 0
     adjusted = (base + contact_bonus + source_bonus) * feedback_multiplier(offer["name"], source)
     score = min(100, round(adjusted, 2))
-    qualified = explicit and source == "public_business_web_signal"
+    qualified = explicit and source in {"public_business_web_signal", "public_buyer_request"}
     actionable = bool(qualified and item.get("contact_email") and item.get("website") and item.get("evidence") and item.get("commercial_intent", 0) >= 1 and item.get("reachability") == "direct_email")
     return {
         "status": "QUALIFIED" if qualified else "WATCH",
@@ -159,7 +159,7 @@ def main():
 
     output = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "method": "Business-first acquisition with public business signals; direct email is preferred for autonomous outreach and contact pages remain queued for later handling; GitHub is secondary.",
+        "method": "Business-first acquisition with public business signals; GitHub buyer requests remain qualified secondary signals for strict activity/probability outreach.",
         "summary": {
             "total": len(leads),
             "qualified": sum(x["status"] == "QUALIFIED" for x in leads),
@@ -183,7 +183,7 @@ def main():
         f"- Watch: **{output['summary']['watch']}**",
         f"- Reachable business-email leads: **{output['summary']['business_email_leads']}**",
         f"- Auto-contact eligible: **{output['summary']['auto_contact_eligible']}**", "",
-        "> Primary source: public business websites with public contact emails. GitHub buyer requests are secondary.", "",
+        "> Primary source: public business websites with public contact emails. GitHub buyer requests require a separate strict activity/probability gate.", "",
     ]
     for lead in leads[:25]:
         lines += [
