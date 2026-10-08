@@ -24,16 +24,27 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
+
       - name: Validate
         run: |
-          python -m py_compile workers/email_autopilot.py workers/revenue_event_ledger.py workers/problem_solving_engine.py workers/autonomous_resolution.py workers/verify_usdt_payment.py
-          python -m unittest tests/test_email_autopilot.py tests/test_revenue_event_ledger.py tests/test_problem_solving_engine.py tests/test_autonomous_resolution.py tests/test_verify_usdt_payment.py -v
+          python -m py_compile workers/email_autopilot.py workers/manual_order_gateway.py workers/revenue_event_ledger.py workers/problem_solving_engine.py workers/autonomous_resolution.py workers/verify_usdt_payment.py
+          python -m unittest tests/test_email_autopilot.py tests/test_manual_order_gateway.py tests/test_revenue_event_ledger.py tests/test_problem_solving_engine.py tests/test_autonomous_resolution.py tests/test_verify_usdt_payment.py -v
+
       - name: Prepare M3 revenue event ledger
         run: |
           mkdir -p data
           test -f data/revenue_events.json || printf '%s\n' '{"events":[]}' > data/revenue_events.json
 
-      - name: Process AgentMail
+      - name: Process manual orders and delivery first
+        env:
+          AGENTMAIL_API_KEY: ${{ secrets.AGENTMAIL_API_KEY }}
+          AGENTMAIL_INBOX_EMAIL: kikikjourney@agentmail.to
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PAYMENT_RECIPIENT: "0x4ce7004e7127f8b2386eb355e088f127c24b3fac"
+        run: python workers/manual_order_gateway.py
+
+      - name: Process general AgentMail sales inbox
         env:
           AGENTMAIL_API_KEY: ${{ secrets.AGENTMAIL_API_KEY }}
           AGENTMAIL_INBOX_EMAIL: kikikjourney@agentmail.to
