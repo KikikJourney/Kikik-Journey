@@ -56,22 +56,9 @@ jobs:
       - name: Assert discovery artifact exists
         if: ${{ inputs.m1_run_id == '' }}
         run: test -s business_prospects.json
-      - name: Build business-first queue
+      - name: Build public-web AgentMail queue
         if: ${{ inputs.m1_run_id == '' }}
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          report = {"buyer_requests": []}
-          p = Path("opportunity_report.json")
-          if p.exists():
-              report = json.loads(p.read_text(encoding="utf-8"))
-          Path("opportunity_report.json").write_text(
-              json.dumps({"buyer_requests": report.get("buyer_requests", [])}, ensure_ascii=False, indent=2),
-              encoding="utf-8",
-          )
-          PY
-          python workers/business_first_acquisition.py
+        run: python workers/business_first_acquisition.py
       - name: Prepare orchestrated acquisition queue
         if: ${{ inputs.m1_run_id != '' }}
         run: |
@@ -183,10 +170,6 @@ jobs:
         with:
           name: business-acquisition-queue
           path: input
-      - uses: actions/download-artifact@v4
-        with:
-          name: business-qwen-qualification
-          path: input/qwen
       - name: Evaluate strict GitHub opportunities and outreach
         env:
           AGENT_OUTREACH_API: ${{ secrets.AGENT_OUTREACH_API }}
@@ -197,7 +180,6 @@ jobs:
         run: |
           python workers/github_opportunity_outreach.py \
             --leads input/customer_leads.json \
-            --qwen input/qwen/worker_prospect_queue.json \
             --report github_outreach_report.json
       - name: Validate GitHub outreach report
         run: |

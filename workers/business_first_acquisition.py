@@ -138,18 +138,16 @@ def main():
         x["url"] = x.get("website")
         business_requests.append(x)
 
-    legacy = report.get("buyer_requests", [])
-    combined = business_requests + legacy
+    # AgentMail acquisition is deliberately isolated from GitHub buyer-request discovery.
     combined_payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "method": "Business-first prospect report: reachable public business websites first; GitHub buyer requests retained as secondary signals.",
-        "buyer_requests": combined[:50],
+        "method": "Public business-web prospects only for AgentMail acquisition.",
+        "buyer_requests": [],
     }
     with open(COMBINED, "w", encoding="utf-8") as h:
         json.dump(combined_payload, h, indent=2, ensure_ascii=False)
 
     leads = [make_lead(x, "public_business_web_signal") for x in business.get("prospects", [])]
-    leads += [make_lead(x, "public_buyer_request") for x in legacy]
     dedup = {}
     for lead in leads:
         key = (lead.get("contact_email") or lead.get("url") or "").lower()
@@ -159,7 +157,7 @@ def main():
 
     output = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
-        "method": "Business-first acquisition with public business signals; GitHub buyer requests remain qualified secondary signals for strict activity/probability outreach.",
+        "method": "AgentMail acquisition queue built exclusively from public business-web signals; GitHub buyer requests are handled by the dedicated GitHub outreach worker.",
         "summary": {
             "total": len(leads),
             "qualified": sum(x["status"] == "QUALIFIED" for x in leads),
@@ -183,7 +181,7 @@ def main():
         f"- Watch: **{output['summary']['watch']}**",
         f"- Reachable business-email leads: **{output['summary']['business_email_leads']}**",
         f"- Auto-contact eligible: **{output['summary']['auto_contact_eligible']}**", "",
-        "> Primary source: public business websites with public contact emails. GitHub buyer requests require a separate strict activity/probability gate.", "",
+        "> AgentMail queue source: public business websites with public contact emails. GitHub buyer requests are intentionally excluded from this queue and handled by the dedicated GitHub channel.", "",
     ]
     for lead in leads[:25]:
         lines += [
