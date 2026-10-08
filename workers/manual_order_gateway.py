@@ -132,20 +132,20 @@ def process_payment(mid,text):
     if not h:return {"status":"payment_missing_tx","ref":p_ref}
     result=verify_payment(h,amount,PAYMENT_RECIPIENT)
     if not result.get("ok"):
-        send(order["contact_email"],f"Order {p_ref} — payment pending",f"Payment was detected but not accepted as PAID. Verification status: {result.get('status')}. The system will not mark the order paid until independent on-chain verification succeeds.",["kj-payment-pending"])
         return {"status":"payment_rejected","ref":p_ref}
     existing=github_find(p_ref)
     body=f"Order reference: {p_ref}\nStatus: PAID\nOffer: {order['offer']}\nSource: {order['source']}\nTX hash: {h}\nAmount: {amount} USDT\nRecipient: {PAYMENT_RECIPIENT}\nVerification: {json.dumps(result,sort_keys=True)}"
     if existing:github_update(existing["number"],f"[ORDER PAID] {p_ref} — {OFFERS[order['offer']][0]}",body)
     else:github_issue(f"[ORDER PAID] {p_ref} — {OFFERS[order['offer']][0]}",body)
     append_events([{"event_id":"paid-"+h.lower(),"event_type":"paid","source":order["source"],"offer":order["offer"],"order_ref":p_ref,"currency":"USDT","amount":str(amount),"amount_idr":OFFERS[order["offer"]][2],"tx_hash":h.lower(),"cost_idr":0}])
+    delivery=f"Payment verified on BNB Smart Chain (BEP-20). Order {p_ref} is PAID.\n\n"
     if order["offer"]=="validation":
-        delivery=f"Payment verified on BNB Smart Chain (BEP-20). Order {p_ref} is PAID.\n\nAI Opportunity Validation Kit: {VALIDATION_KIT_URL}\n\nThe digital delivery is ready immediately."
-        append_events([{"event_id":"delivered-"+p_ref,"event_type":"delivered","source":order["source"],"offer":order["offer"],"order_ref":p_ref,"amount_idr":0,"cost_idr":0}])
+        delivery += f"AI Opportunity Validation Kit: {VALIDATION_KIT_URL}\n\nThe digital delivery is ready immediately."
     else:
-        delivery=f"Payment verified on BNB Smart Chain (BEP-20). Order {p_ref} is PAID.\n\nAutomated delivery/intake is now active. Reply to this email with the non-sensitive project requirements for {OFFERS[order['offer']][0]}. Never send passwords, OTPs, seed phrases, private keys, or full API secrets."
-    send(order["contact_email"],f"Order {p_ref} — PAYMENT VERIFIED",delivery,["kj-paid","kj-delivery"])
-    return {"status":"paid_and_delivered","ref":p_ref}
+        delivery += f"Your {OFFERS[order['offer']][0]} order is confirmed. Automated delivery/intake is now active. Reply to this email with non-sensitive project requirements."
+    append_events([{"event_id":"delivered-"+p_ref,"event_type":"delivered","source":order["source"],"offer":order["offer"],"order_ref":p_ref,"amount_idr":0,"cost_idr":0}])
+    return {"status":"paid_and_ready_for_delivery","ref":p_ref,"delivery":{"to":order["contact_email"],"subject":f"Order {p_ref} — PAYMENT VERIFIED","body":delivery,"labels":["kj-paid","kj-delivery"]}}
+
 
 def main():
     results={}
