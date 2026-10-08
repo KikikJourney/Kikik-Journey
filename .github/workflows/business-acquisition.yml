@@ -6,9 +6,6 @@ on:
     paths-ignore:
       - "data/**"
       - "profit_report.json"
-    paths-ignore:
-      - "data/**"
-      - "profit_report.json"
   workflow_dispatch:
   schedule:
     - cron: "7 */2 * * *"
