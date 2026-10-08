@@ -20,7 +20,15 @@ The repository combines a GitHub Actions radar with deterministic scoring, reven
 
 The repository is organized as a closed acquisition-to-profit loop. Generated evidence is treated as evidence, not as proof of customers or revenue.
 
-## One-click orchestration\n\nFor a full manual operating cycle, use **`Zorathvael OS — Master Orchestrator`** in GitHub Actions. It is the single manual entry point and runs the milestones in order:\n\n`M1 DISCOVER → M2 QUALIFY/ACQUIRE → M3 PAYMENT/DELIVERY → M4 PROFIT FEEDBACK`\n\nEach milestone remains an independent reusable workflow with its own logs and validation. Scheduled workflows continue to operate independently, so the orchestrator is specifically for a deliberate full-cycle manual run.\n\n## What the repository does
+## One-click orchestration\n\nFor a full manual operating cycle, use **`Zorathvael OS — Master Orchestrator`** in GitHub Actions. It is the single manual entry point and runs the milestones in order:\n\n`M1 DISCOVER → M2 QUALIFY/ACQUIRE → M3 PAYMENT/DELIVERY → M4 PROFIT FEEDBACK`\n\nEach milestone remains an independent reusable workflow with its own logs and validation. Scheduled workflows continue to operate independently, so the orchestrator is specifically for a deliberate full-cycle manual run.\n\n## One-click orchestration
+
+For a full manual operating cycle, use **`Zorathvael OS — Master Orchestrator`** in GitHub Actions. It is the single manual entry point and runs the milestones in order:
+
+`M1 DISCOVER → M2 QUALIFY/ACQUIRE → M3 PAYMENT/DELIVERY → M4 PROFIT FEEDBACK`
+
+Each milestone remains an independent reusable workflow with its own logs and validation. Scheduled workflows continue to operate independently, so the orchestrator is specifically for a deliberate full-cycle manual run.
+
+## What the repository does
 
 ### 1. M1 — Opportunity Radar
 
