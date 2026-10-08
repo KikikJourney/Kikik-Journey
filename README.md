@@ -297,3 +297,12 @@ python -m unittest discover -s tests -p "test_*.py" -v
 ```
 
 The authoritative automation configuration is the GitHub Actions configuration under `.github/workflows/`. M1–M4 status is determined from actual workflow runs and generated artifacts, not README claims.
+
+## License
+
+Copyright © 2026 Kikik Journey. All rights reserved.
+
+This repository is **proprietary** unless a separate file or written agreement explicitly grants additional rights. No permission is granted to copy, modify, redistribute, resell, sublicense, or use the repository's source code, automation logic, sales assets, product assets, or branding for commercial purposes without prior written permission.
+
+Third-party components, dependencies, models, and referenced projects remain subject to their respective licenses. See their original license terms before reuse.
+
