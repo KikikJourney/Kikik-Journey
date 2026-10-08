@@ -25,6 +25,21 @@ class GitHubOutreachTests(unittest.TestCase):
         self.assertFalse(go.eligible(self.lead(source="public_business_web_signal")))
 
     @patch("workers.github_opportunity_outreach.api")
+    def test_github_discovery_is_independent(self, api):
+        api.return_value = {
+            "items": [{
+                "html_url": "https://github.com/acme/shop/issues/7",
+                "title": "Need help fixing automation workflow",
+                "body": "We need a developer because our workflow is failing.",
+                "updated_at": "2026-10-08T00:00:00Z",
+            }]
+        }
+        leads = go.search_buyer_requests()
+        self.assertEqual(len(leads), 1)
+        self.assertEqual(leads[0]["source"], "public_buyer_request")
+        self.assertIn("github.com/acme/shop/issues/7", leads[0]["url"])
+
+    @patch("workers.github_opportunity_outreach.api")
     def test_inactive_repo_is_skipped(self, api):
         api.return_value = {
             "archived": False, "disabled": False,
