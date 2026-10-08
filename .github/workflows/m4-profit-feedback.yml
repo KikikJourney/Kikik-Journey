@@ -15,7 +15,7 @@ on:
       - "tests/test_profit_policy_integration.py"
       - ".github/workflows/m4-profit-feedback.yml"
   workflow_run:
-    workflows: ["Business Acquisition Engine", "Autonomous AgentMail Sales Inbox"]
+    workflows: ["Business Acquisition Engine", "M3 · AgentMail Transaction & Delivery Engine"]
     types: [completed]
   workflow_dispatch:
   workflow_call:
