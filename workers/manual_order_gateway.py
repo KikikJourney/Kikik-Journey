@@ -73,7 +73,12 @@ def offer_from(text):
 
 def parse(text):
     source=re.sub(r"[^a-z0-9._-]","",(field(text,"Source") or "direct").lower())[:40] or "direct"
-    return {"ref":ref(text),"contact_email":email(field(text,"Contact email")),"offer":offer_from(text),"source":source,"payment":field(text,"Payment method") or "USDT","tx_hash":tx_hash(field(text,"Transaction hash") or text)}
+    return {"ref":ref(text),"contact_email":email(field(text,"Contact email")),"offer":offer_from(text),"source":source,"payment":field(text,"Payment method") or "USDT","tx_hash":tx_hash(field(text,"Transaction hash"))}
+
+def send(to,subject,body,labels=None):
+    payload={"to":to,"subject":subject,"text":body}
+    if labels: payload["labels"]=labels
+    return api(qpath(INBOX)+"/send","POST",payload)
 
 def github_issue(title,body):
     if not GITHUB_TOKEN:return None
