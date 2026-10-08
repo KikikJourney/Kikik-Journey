@@ -172,3 +172,39 @@ jobs:
         with:
           name: business-outreach-report
           path: outreach_report.json
+
+  github-outreach:
+    needs: qualify
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v4
+        with:
+          name: business-acquisition-queue
+          path: input
+      - uses: actions/download-artifact@v4
+        with:
+          name: business-qwen-qualification
+          path: input/qwen
+      - name: Evaluate strict GitHub opportunities and outreach
+        env:
+          GITHUB_OUTREACH_TOKEN: ${{ secrets.GITHUB_OUTREACH_TOKEN }}
+          KJ_GITHUB_MAX_OUTREACH_PER_RUN: "1"
+          KJ_GITHUB_MIN_OUTREACH_SCORE: "80"
+          KJ_GITHUB_ACTIVE_DAYS: "90"
+          CHECKOUT_BASE_URL: "https://kikikjourney.github.io/Kikik-Journey/sales/manual_order.html"
+        run: |
+          python workers/github_opportunity_outreach.py \
+            --leads input/customer_leads.json \
+            --qwen input/qwen/worker_prospect_queue.json \
+            --report github_outreach_report.json
+      - name: Validate GitHub outreach report
+        run: |
+          python -m json.tool github_outreach_report.json >/dev/null
+          python -m py_compile workers/github_opportunity_outreach.py
+          python -m unittest tests/test_github_opportunity_outreach.py -v
+      - uses: actions/upload-artifact@v4
+        with:
+          name: github-outreach-report
+          path: github_outreach_report.json
