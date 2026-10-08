@@ -2,7 +2,7 @@
 
 ## Flow
 
-Social/repository traffic → manual-order.html → payment verification → PAID → AgentMail delivery → M4 profit feedback
+Social/repository traffic → manual-order.html (order + TX hash) → payment verification → PAID → AgentMail delivery → M4 profit feedback
 
 The public page collects a required contact email. Manual order creation is an order intake step only. Payment verification is the gate to PAID. AgentMail is used only for customer email delivery after payment verification; it is not the payment verifier.
 
