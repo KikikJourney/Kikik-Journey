@@ -23,7 +23,7 @@ CHECKOUT = os.getenv(
     "CHECKOUT_BASE_URL",
     "https://kikikjourney.github.io/Kikik-Journey/sales/manual_order.html",
 )
-TOKEN = os.getenv("GITHUB_OUTREACH_TOKEN")
+TOKEN = os.getenv("AGENT_OUTREACH_API")
 MARKER = "<!-- kikik-journey-github-outreach:v2 -->"
 INTENT = ("need help", "need someone", "looking for", "need a developer", "hire",
           "hiring", "paid help", "who can build", "who can fix", "help me automate",
@@ -41,7 +41,7 @@ def api(url, method="GET", payload=None):
     if TOKEN:
         headers["Authorization"] = f"Bearer {TOKEN}"
     elif method != "GET":
-        raise RuntimeError("GITHUB_OUTREACH_TOKEN is required for GitHub write operations")
+        raise RuntimeError("AGENT_OUTREACH_API is required for GitHub write operations")
     data = json.dumps(payload).encode() if payload is not None else None
     if data:
         headers["Content-Type"] = "application/json"
