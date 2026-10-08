@@ -122,7 +122,7 @@ def process_order(mid,text):
     contact_hash=hashlib.sha256(p["contact_email"].encode()).hexdigest()[:16]
     existing=github_find(p["ref"])
     if not existing:
-        github_issue(f"[MANUAL ORDER PENDING] {p["ref"]} — {title}",f"Order reference: {p["ref"]}\nStatus: PENDING_PAYMENT\nOffer key: {p["offer"]}\nSource: {p["source"]}\nPayment method: {p["payment"]}\nContact hash: {contact_hash}\nContact email is intentionally not stored in the public GitHub record.")
+        github_issue(f"[MANUAL ORDER PENDING] {p['ref']} — {title}",f"Order reference: {p['ref']}\nStatus: PENDING_PAYMENT\nOffer key: {p['offer']}\nSource: {p['source']}\nPayment method: {p['payment']}\nContact hash: {contact_hash}\nContact email is intentionally not stored in the public GitHub record.")
     append_events([{"event_id":"order-"+p["ref"].lower(),"event_type":"order_created","source":p["source"],"offer":p["offer"],"order_ref":p["ref"],"amount_idr":OFFERS[p["offer"]][2],"cost_idr":0}])
     if p["tx_hash"]:
         return process_payment(mid,text,order=p)
