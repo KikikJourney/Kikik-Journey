@@ -16,8 +16,6 @@ try:
 except ModuleNotFoundError:
     from verify_usdt_payment import verify_payment
 
-API="https://api.agentmail.to/v0"
-INBOX=os.getenv("AGENTMAIL_INBOX_EMAIL","kikikjourney@agentmail.to")
 GITHUB_TOKEN=os.getenv("GITHUB_TOKEN")
 GITHUB_REPO=os.getenv("GITHUB_REPOSITORY","KikikJourney/Kikik-Journey")
 PAYMENT_RECIPIENT=os.getenv("PAYMENT_RECIPIENT","0x4ce7004e7127f8b2386eb355e088f127c24b3fac")
@@ -90,9 +88,6 @@ def github_update(number,title,body):
     req=urllib.request.Request(f"https://api.github.com/repos/{GITHUB_REPO}/issues/{number}",data=json.dumps({"title":title,"body":body}).encode(),headers={"Accept":"application/vnd.github+json","Authorization":"Bearer "+GITHUB_TOKEN,"X-GitHub-Api-Version":"2022-11-28","Content-Type":"application/json"},method="PATCH")
     urllib.request.urlopen(req,timeout=30).read()
 
-def send(to,subject,text,labels):
-    return api(qpath(INBOX)+"/send","POST",{"to":[to],"subject":subject,"text":text,"labels":labels})
-
 def load_detail(mid):
     return api(qpath(INBOX,mid))
 
@@ -124,7 +119,7 @@ def process_order(mid,text):
     if not existing:
         github_issue(f"[MANUAL ORDER PENDING] {p['ref']} — {title}",f"Order reference: {p['ref']}\nStatus: PENDING_PAYMENT\nOffer key: {p['offer']}\nSource: {p['source']}\nPayment method: {p['payment']}\nContact hash: {contact_hash}\nContact email is intentionally not stored in the public GitHub record.")
     msg=(f"Manual order {p['ref']} received.\n\nOffer: {title}\nPayment method: {p['payment']}\nSource: {p['source']}\n\nUSDT: {OFFERS[p['offer']][1]} USDT on BNB Smart Chain (BEP-20). Reply with the transaction hash and order reference after payment.\n\nPayment is independently verified before PAID. Delivery is sent to {p['contact_email']}.")
-    send(p["contact_email"],f"Order {p['ref']} received — Kikik Journey",msg,["kj-order"])
+
     append_events([{"event_id":"order-"+p["ref"].lower(),"event_type":"order_created","source":p["source"],"offer":p["offer"],"order_ref":p["ref"],"amount_idr":OFFERS[p["offer"]][2],"cost_idr":0}])
     return {"status":"order_created","ref":p["ref"]}
 
