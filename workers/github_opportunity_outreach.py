@@ -33,14 +33,15 @@ PAIN = ("bug", "broken", "error", "failing", "manual", "automation", "workflow",
 
 
 def api(url, method="GET", payload=None):
-    if not TOKEN:
-        raise RuntimeError("GITHUB_OUTREACH_TOKEN/GITHUB_TOKEN is required")
     headers = {
         "Accept": "application/vnd.github+json",
-        "Authorization": f"Bearer {TOKEN}",
         "X-GitHub-Api-Version": "2022-11-28",
         "User-Agent": "KikikJourney-GitHub-Outreach/2.0",
     }
+    if TOKEN:
+        headers["Authorization"] = f"Bearer {TOKEN}"
+    elif method != "GET":
+        raise RuntimeError("GITHUB_OUTREACH_TOKEN is required for GitHub write operations")
     data = json.dumps(payload).encode() if payload is not None else None
     if data:
         headers["Content-Type"] = "application/json"
