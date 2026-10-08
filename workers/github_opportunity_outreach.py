@@ -165,8 +165,9 @@ def checkout_url(lead, repo, issue):
 
 
 def already_contacted(repo, number):
-    comments = api(f"https://api.github.com/repos/{repo}/issues/{number}/comments?per_page=100").get("comments", [])
-    return any(MARKER in (c.get("body") or "") for c in comments)
+    response = api(f"https://api.github.com/repos/{repo}/issues/{number}/comments?per_page=100")
+    comments = response if isinstance(response, list) else response.get("comments", [])
+    return any(MARKER in (comment.get("body") or "") for comment in comments)
 
 
 def eligible(lead):
