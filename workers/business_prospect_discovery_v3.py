@@ -114,8 +114,8 @@ def read(url):
         return "", url
     for attempt in range(2):
         try:
-            body, final = get("https://r.jina.ai/" + clean_url)
-            return body, normalize_url(final) or clean_url
+            body, _ = get("https://r.jina.ai/" + clean_url)
+            return body, clean_url
         except (HTTPError, URLError, TimeoutError, UnicodeError, ValueError, InvalidURL):
             if attempt == 0:
                 time.sleep(0.3)
