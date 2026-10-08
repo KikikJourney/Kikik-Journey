@@ -80,11 +80,11 @@ jobs:
           M3_RUN_ID: ${{ steps.m3.outputs.run_id }}
         run: |
           set -euo pipefail
-          m3_completed_at="$(gh run view "${M3_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --json completedAt --jq '.completedAt')"
+          m3_started_at="$(gh run view "${M3_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --json startedAt --jq '.startedAt')"
           m3_head_sha="$(gh run view "${M3_RUN_ID}" --repo "${GITHUB_REPOSITORY}" --json headSha --jq '.headSha')"
-          m3_completed_epoch="$(date -d "${m3_completed_at}" +%s)"
+          m3_started_epoch="$(date -d "${m3_started_at}" +%s)"
           for i in $(seq 1 60); do
-            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow m4-profit-feedback.yml --limit 50 --json databaseId,event,status,conclusion,createdAt,headSha | jq -r --arg sha "${m3_head_sha}" --argjson started "${m3_completed_epoch}" '[.[] | select(.event=="workflow_run") | select(.status=="completed") | select(.headSha==$sha) | select((.createdAt | fromdateiso8601) >= $started)][0].databaseId // empty')"
+            run_id="$(gh run list --repo "${GITHUB_REPOSITORY}" --workflow m4-profit-feedback.yml --limit 50 --json databaseId,event,status,conclusion,createdAt,headSha | jq -r --arg sha "${m3_head_sha}" --argjson started "${m3_started_epoch}" '[.[] | select(.event=="workflow_run") | select(.status=="completed") | select(.headSha==$sha) | select((.createdAt | fromdateiso8601) >= $started)][0].databaseId // empty')"
             if [ -n "${run_id}" ]; then
               conclusion="$(gh run view "${run_id}" --repo "${GITHUB_REPOSITORY}" --json conclusion --jq '.conclusion')"
               echo "M4 run ${run_id}: ${conclusion}"
