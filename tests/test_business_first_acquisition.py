@@ -9,6 +9,8 @@ class BusinessFirstAcquisitionTests(unittest.TestCase):
             "contact_email": "ops@example.com",
             "evidence": "Our ecommerce store manually copies WooCommerce orders into Google Sheets. We need help automating this.",
             "score": 60,
+            "commercial_intent": 2,
+            "reachability": "direct_email",
         }
         lead = a.make_lead(item, "public_business_web_signal")
         self.assertEqual(lead["status"], "QUALIFIED")
