@@ -91,7 +91,7 @@ def normalize_url(url):
     if not clean:
         return ""
     # Markdown search results may include a quoted link title after the URL.
-    match = re.match(r'^(https?://\\S+)', clean)
+    match = re.match(r'^(https?://\S+)', clean)
     if not match:
         return ""
     clean = match.group(1)
