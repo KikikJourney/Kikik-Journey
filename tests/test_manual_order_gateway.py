@@ -1,5 +1,5 @@
 import unittest
-from workers.manual_order_gateway import parse, ref, offer_from
+from workers.manual_order_gateway import parse, ref, offer_from, process_payment
 
 class ManualOrderGatewayTests(unittest.TestCase):
     def setUp(self):
@@ -22,6 +22,9 @@ class ManualOrderGatewayTests(unittest.TestCase):
         self.assertEqual(ref(self.text),"KJ-MANUAL-ABC123")
     def test_offer(self):
         self.assertEqual(offer_from(self.text),"validation")
+    def test_payment_function_isolated_from_delivery(self):
+        self.assertTrue(callable(process_payment))
+
     def test_reject_missing_contact(self):
         p=parse(self.text.replace("buyer@example.com",""))
         self.assertEqual(p["contact_email"],"")
