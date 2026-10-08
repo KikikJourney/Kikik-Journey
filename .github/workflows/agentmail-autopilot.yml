@@ -3,6 +3,9 @@ name: Autonomous AgentMail Sales Inbox
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "data/**"
+      - "profit_report.json"
   workflow_dispatch:
   workflow_call:
   schedule:
