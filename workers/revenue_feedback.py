@@ -165,6 +165,12 @@ def ingest_outreach(report, events):
     return deduplicate_events(events)
 
 
+def ingest_outreach_reports(reports, events):
+    for report in reports:
+        events = ingest_outreach(report, events)
+    return deduplicate_events(events)
+
+
 def ingest_event_file(payload, events):
     if not payload:
         return deduplicate_events(events)
@@ -176,6 +182,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--events", default=str(DEFAULT_EVENTS))
     parser.add_argument("--outreach-report", default="outreach_report.json")
+    parser.add_argument("--extra-outreach-report", action="append", default=[])
     parser.add_argument("--event-file", default="")
     parser.add_argument("--policy", default=str(DEFAULT_POLICY))
     parser.add_argument("--report", default=str(DEFAULT_REPORT))
@@ -185,8 +192,9 @@ def main():
     events = load_json(event_path, [])
     if isinstance(events, dict):
         events = events.get("events", [])
-    outreach = load_json(Path(args.outreach_report), {})
-    events = ingest_outreach(outreach, events)
+    outreach_reports = [load_json(Path(args.outreach_report), {})]
+    outreach_reports.extend(load_json(Path(path), {}) for path in args.extra_outreach_report)
+    events = ingest_outreach_reports(outreach_reports, events)
     if args.event_file:
         events = ingest_event_file(load_json(Path(args.event_file), {}), events)
 
