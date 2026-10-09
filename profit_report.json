@@ -1,32 +1,76 @@
 {
-  "generated_at": "2026-10-09T03:44:05.312725+00:00",
+  "generated_at": "2026-10-09T03:45:14.929946+00:00",
   "totals": {
-    "events": 0,
-    "contacted": 0,
+    "events": 3,
+    "contacted": 3,
     "replies": 0,
     "qualified": 0,
     "paid_orders": 0,
     "delivered": 0,
     "refunded_orders": 0,
-    "revenue_idr": 0,
-    "refund_idr": 0,
-    "cost_idr": 0,
-    "net_revenue_idr": 0,
-    "profit_idr": 0,
+    "revenue_idr": 0.0,
+    "refund_idr": 0.0,
+    "cost_idr": 0.0,
+    "net_revenue_idr": 0.0,
+    "profit_idr": 0.0,
     "reply_rate": 0.0,
     "qualified_rate": 0.0,
     "paid_from_replied_rate": 0.0,
     "paid_from_qualified_rate": 0.0,
     "conversion_rate": 0.0
   },
-  "offers": {},
-  "sources": {},
+  "offers": {
+    "Workflow Rescue Pilot": {
+      "contacted": 3,
+      "replied": 0,
+      "qualified": 0,
+      "paid": 0,
+      "delivered": 0,
+      "refunded": 0,
+      "revenue_idr": 0.0,
+      "refund_idr": 0.0,
+      "cost_idr": 0.0,
+      "net_revenue_idr": 0.0,
+      "profit_idr": 0.0,
+      "reply_rate": 0.0,
+      "qualified_rate": 0.0,
+      "paid_from_replied_rate": 0.0,
+      "paid_from_qualified_rate": 0.0,
+      "conversion_rate": 0.0,
+      "profit_per_contacted_idr": 0.0
+    }
+  },
+  "sources": {
+    "github_public_buyer_request": {
+      "contacted": 3,
+      "replied": 0,
+      "qualified": 0,
+      "paid": 0,
+      "delivered": 0,
+      "refunded": 0,
+      "revenue_idr": 0.0,
+      "refund_idr": 0.0,
+      "cost_idr": 0.0,
+      "net_revenue_idr": 0.0,
+      "profit_idr": 0.0,
+      "reply_rate": 0.0,
+      "qualified_rate": 0.0,
+      "paid_from_replied_rate": 0.0,
+      "paid_from_qualified_rate": 0.0,
+      "conversion_rate": 0.0,
+      "profit_per_contacted_idr": 0.0
+    }
+  },
   "policy": {
     "version": 1,
-    "generated_at": "2026-10-09T03:44:05.312725+00:00",
+    "generated_at": "2026-10-09T03:45:14.929946+00:00",
     "principle": "Outcome data changes prioritization; it never bypasses buyer-intent, compliance, Qwen, deduplication, or outreach caps.",
-    "offer_multipliers": {},
-    "source_multipliers": {},
+    "offer_multipliers": {
+      "Workflow Rescue Pilot": 0.86
+    },
+    "source_multipliers": {
+      "github_public_buyer_request": 0.86
+    },
     "bounds": {
       "min": 0.75,
       "max": 1.5

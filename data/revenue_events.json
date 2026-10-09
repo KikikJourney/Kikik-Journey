@@ -1,3 +1,28 @@
 {
-  "events": []
+  "events": [
+    {
+      "event_id": "github-contact-1abdd7bf5b46f00ebfe64198",
+      "event_type": "contacted",
+      "source": "github_public_buyer_request",
+      "offer": "Workflow Rescue Pilot",
+      "cost_idr": 0.0,
+      "occurred_at": "2026-10-09T03:45:00.781187+00:00"
+    },
+    {
+      "event_id": "github-contact-8ca73eb91a6023aad99be2df",
+      "event_type": "contacted",
+      "source": "github_public_buyer_request",
+      "offer": "Workflow Rescue Pilot",
+      "cost_idr": 0.0,
+      "occurred_at": "2026-10-09T03:45:01.944263+00:00"
+    },
+    {
+      "event_id": "github-contact-0cf7f223f8907e7e8278b62e",
+      "event_type": "contacted",
+      "source": "github_public_buyer_request",
+      "offer": "Workflow Rescue Pilot",
+      "cost_idr": 0.0,
+      "occurred_at": "2026-10-09T03:45:03.012733+00:00"
+    }
+  ]
 }
