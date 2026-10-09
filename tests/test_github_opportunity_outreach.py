@@ -94,6 +94,24 @@ class GitHubOutreachTests(unittest.TestCase):
         }
         self.assertEqual(go.search_buyer_requests(), [])
 
+    def test_commercial_gate_rejects_aggregated_digest_with_negated_quotes(self):
+        title = "Leads — 2026-10-07 (2)"
+        body = ("# Freelance leads from 171 posts. Reddit: Technical Co-Founder Wanted. "
+                "I am not looking to hire a developer. Why it matched: hire a developer.")
+        self.assertFalse(go.commercial_request_gate(title, body))
+
+    def test_commercial_gate_rejects_seo_service_promotion(self):
+        title = "Best AngularJS Development company in Chennai"
+        body = ("Introduction. Choosing the Best AngularJS Development company enables "
+                "businesses to build web applications. Why Choose this trusted provider? "
+                "We provide professional services.")
+        self.assertFalse(go.commercial_request_gate(title, body))
+
+    def test_commercial_gate_accepts_explicit_paid_request(self):
+        title = "Looking to hire a freelancer for paid Google Sheets automation"
+        body = "We need a contractor to automate our manual order workflow; please send a quote."
+        self.assertTrue(go.commercial_request_gate(title, body))
+
 
 if __name__ == "__main__":
     unittest.main()
