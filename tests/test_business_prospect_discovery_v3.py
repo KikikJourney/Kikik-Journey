@@ -55,6 +55,34 @@ class BusinessProspectDiscoveryV3Tests(unittest.TestCase):
         self.assertIn("pencatatan stok", first_pass)
         self.assertIn("community.make.com", first_pass)
 
+    def test_rejects_generic_help_and_login_pages(self):
+        self.assertFalse(discovery.is_candidate_page({
+            "title": "How Do I...?",
+            "url": "https://community.zapier.com/how-do-i-3",
+        }))
+        self.assertFalse(discovery.is_candidate_page({
+            "title": "Log in",
+            "url": "https://community.zapier.com/ssoproxy/login",
+        }))
+
+    def test_accepts_specific_public_discussion_topic(self):
+        self.assertTrue(discovery.is_candidate_page({
+            "title": "Mapping contact information between tools: seeking a solution",
+            "url": "https://community.zapier.com/how-do-i-3/example-53828",
+        }))
+
+    def test_rejects_generic_community_category_even_if_body_has_keywords(self):
+        with patch.object(discovery, "read", return_value=(
+            "Have a question? Get help. Automate your business with Google Sheets.",
+            "https://community.zapier.com/how-do-i-3",
+        )) as reader:
+            result = discovery.inspect({
+                "title": "How Do I...?",
+                "url": "https://community.zapier.com/how-do-i-3",
+            }, "test")
+        self.assertIsNone(result)
+        reader.assert_not_called()
+
 
 
 if __name__ == "__main__":

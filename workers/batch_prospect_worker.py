@@ -80,6 +80,18 @@ def build_payload(request, offers):
     }
 
 
+def select_requests(report, limit):
+    """Use only actionable public-business leads for the business acquisition flow."""
+    if "leads" in report:
+        candidates = [
+            lead for lead in report.get("leads", [])
+            if lead.get("status") == "QUALIFIED" and lead.get("actionable") is True
+            and lead.get("contact_email") and lead.get("website")
+        ]
+        return candidates[:max(0, limit)]
+    return report.get("buyer_requests", [])[:max(0, limit)]
+
+
 def guarded_result(result, request, offers):
     offer = next((x for x in offers if x["name"] == result.get("matched_offer")), None)
     if offer is None:
@@ -111,7 +123,7 @@ def main():
     args = parser.parse_args()
 
     report = json.loads(Path(args.input).read_text(encoding="utf-8"))
-    requests = report.get("buyer_requests", [])[: max(0, args.limit)]
+    requests = select_requests(report, args.limit)
     results = []
 
     with tempfile.TemporaryDirectory() as tmp:
