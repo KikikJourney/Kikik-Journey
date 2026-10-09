@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-10-09T03:45:14.929946+00:00",
+  "generated_at": "2026-10-09T03:52:12.677205+00:00",
   "totals": {
-    "events": 3,
-    "contacted": 3,
+    "events": 9,
+    "contacted": 9,
     "replies": 0,
     "qualified": 0,
     "paid_orders": 0,
@@ -21,7 +21,7 @@
   },
   "offers": {
     "Workflow Rescue Pilot": {
-      "contacted": 3,
+      "contacted": 9,
       "replied": 0,
       "qualified": 0,
       "paid": 0,
@@ -42,7 +42,7 @@
   },
   "sources": {
     "github_public_buyer_request": {
-      "contacted": 3,
+      "contacted": 9,
       "replied": 0,
       "qualified": 0,
       "paid": 0,
@@ -63,13 +63,13 @@
   },
   "policy": {
     "version": 1,
-    "generated_at": "2026-10-09T03:45:14.929946+00:00",
+    "generated_at": "2026-10-09T03:52:12.677205+00:00",
     "principle": "Outcome data changes prioritization; it never bypasses buyer-intent, compliance, Qwen, deduplication, or outreach caps.",
     "offer_multipliers": {
-      "Workflow Rescue Pilot": 0.86
+      "Workflow Rescue Pilot": 0.7727
     },
     "source_multipliers": {
-      "github_public_buyer_request": 0.86
+      "github_public_buyer_request": 0.7727
     },
     "bounds": {
       "min": 0.75,
