@@ -102,7 +102,13 @@ def is_candidate_page(item):
     # Community home/category URLs often contain generic help/navigation text.
     # Only inspect individual, identifiable discussion topics from these hosts.
     if domain == "community.zapier.com":
-        return bool(re.fullmatch(r"/[^/]+-\d+/[^/]+-\d+", path))
+        sections = {"how-do-i-3", "troubleshooting-99", "code-webhooks-52"}
+        segments = [part for part in path.split("/") if part]
+        return bool(
+            len(segments) == 2
+            and segments[0] in sections
+            and re.fullmatch(r"[^/]+-\d+", segments[1])
+        )
     if domain in {"community.make.com", "community.n8n.io"}:
         return bool(re.fullmatch(r"/t/[^/]+/\d+", path))
     if domain == "forum.pabbly.com":
