@@ -289,25 +289,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-            elif not TOKEN:
-                report["skipped"]["missing_write_token"] = report["skipped"].get("missing_write_token", 0) + 1
-                attempt["status"] = "skipped_missing_write_token"
-            else:
-                api(f"https://api.github.com/repos/{repo}/issues/{issue}/comments", "POST",
-                    {"body": comment_body(lead, checkout_url(lead, repo, issue))})
-                report["contacted"] += 1
-                report["contacted_leads"].append(contacted_event(lead, repo, issue))
-                attempt["status"] = "contacted"
-            report["eligible"] += 1
-            report["attempts"].append(attempt)
-        except Exception as exc:
-            report["skipped"]["error"] = report["skipped"].get("error", 0) + 1
-            report["attempts"].append({"repo": repo, "issue": issue, "status": f"error:{type(exc).__name__}"})
-    with open(args.report, "w", encoding="utf-8") as h:
-        json.dump(report, h, indent=2)
-    print(json.dumps(report, indent=2))
-
-
-if __name__ == "__main__":
-    main()
