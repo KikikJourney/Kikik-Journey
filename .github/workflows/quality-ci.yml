@@ -1,0 +1,40 @@
+name: Quality CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'data/**'
+      - 'profit_report.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Compile application and test modules
+        run: python -m compileall -q opportunity_radar.py opportunity_packager.py customer_acquisition.py workers tests
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Validate public site and research artifacts
+        run: |
+          test -s index.html
+          test -s sales/manual-order.html
+          test -s sales/wa-sheet.html
+          test -s research/product-market-audit-2026-10.md
+          python -c 'import json; json.load(open("payment-config.json", encoding="utf-8"))'
