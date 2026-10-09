@@ -40,6 +40,27 @@ class GitHubOutreachTests(unittest.TestCase):
         self.assertIn("github.com/acme/shop/issues/7", leads[0]["url"])
 
     @patch("workers.github_opportunity_outreach.api")
+    def test_buyer_discovery_searches_recent_open_issues_and_reports_counts(self, api):
+        api.return_value = {"items": []}
+        self.assertEqual(go.search_buyer_requests(), [])
+        self.assertEqual(api.call_count, len(go.BUYER_QUERIES))
+        for call in api.call_args_list:
+            query = call.args[1]["q"]
+            self.assertIn("type:issue", query)
+            self.assertIn("is:open", query)
+            self.assertIn("updated:>=", query)
+        self.assertEqual(go.SEARCH_DIAGNOSTICS["queries_attempted"], len(go.BUYER_QUERIES))
+        self.assertEqual(go.SEARCH_DIAGNOSTICS["query_failures"], 0)
+        self.assertEqual(go.SEARCH_DIAGNOSTICS["qualified_requests"], 0)
+
+    @patch("workers.github_opportunity_outreach.api")
+    def test_buyer_discovery_records_search_failures_without_false_leads(self, api):
+        api.side_effect = RuntimeError("simulated search outage")
+        self.assertEqual(go.search_buyer_requests(), [])
+        self.assertEqual(go.SEARCH_DIAGNOSTICS["query_failures"], len(go.BUYER_QUERIES))
+        self.assertEqual(go.SEARCH_DIAGNOSTICS["qualified_requests"], 0)
+
+    @patch("workers.github_opportunity_outreach.api")
     def test_inactive_repo_is_skipped(self, api):
         api.return_value = {
             "archived": False, "disabled": False,
