@@ -55,6 +55,38 @@ class BusinessProspectDiscoveryV3Tests(unittest.TestCase):
         self.assertIn("pencatatan stok", first_pass)
         self.assertIn("community.make.com", first_pass)
 
+    def test_diagnostics_explain_zero_match_search_runs(self):
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        import json
+        import os
+
+        with TemporaryDirectory() as tmp:
+            old_cwd = os.getcwd()
+            old_diag = json.loads(json.dumps(discovery.DIAGNOSTICS))
+            try:
+                os.chdir(tmp)
+                discovery.DIAGNOSTICS.update({
+                    "queries_attempted": 0, "search_targets_attempted": 0,
+                    "search_targets_with_content": 0, "search_targets_failed_or_empty": 0,
+                    "links_seen": 0, "content_pages_read": 0, "content_pages_empty": 0,
+                    "pages_rejected_no_buyer_evidence": 0, "pages_with_buyer_evidence": 0,
+                    "direct_business_emails_found": 0, "per_query": [],
+                })
+                with patch.object(discovery, "search", side_effect=[[{
+                    "title": "Generic help", "url": "https://example.com/help"
+                }]] + [[]] * (len(discovery.QUERIES) - 1)), patch.object(
+                    discovery, "inspect", return_value=None
+                ):
+                    discovery.main()
+                payload = json.loads(Path("business_prospects.json").read_text())
+                self.assertEqual(payload["count"], 0)
+                self.assertEqual(payload["diagnostics"]["queries_attempted"], 10)
+                self.assertEqual(len(payload["diagnostics"]["per_query"]), 10)
+            finally:
+                discovery.DIAGNOSTICS.update(old_diag)
+                os.chdir(old_cwd)
+
     def test_rejects_generic_help_and_login_pages(self):
         self.assertFalse(discovery.is_candidate_page({
             "title": "How Do I...?",
