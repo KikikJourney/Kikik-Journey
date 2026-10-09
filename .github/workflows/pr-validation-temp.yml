@@ -1,0 +1,18 @@
+name: Temporary Buyer Demand Validation
+on:
+  push:
+    branches:
+      - feat/qualified-buyer-demand-engine
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile changed modules
+        run: python -m py_compile opportunity_radar.py opportunity_packager.py workers/business_prospect_discovery_v3.py
+      - name: Run full regression suite
+        run: python -m unittest discover -s tests -p "test_*.py" -v
