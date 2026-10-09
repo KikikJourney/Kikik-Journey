@@ -346,7 +346,7 @@ def inspect(item, query):
     }
     # Keep strongly relevant pages in a WATCH queue even when explicit purchase
     # intent is absent. WATCH records must never enter autonomous outreach.
-    relevance_gate = business_hits >= 1 and pain_hits >= 2 and offer_hits >= 1
+    relevance_gate = (business_hits >= 1 and pain_hits >= 2 and offer_hits >= 1) or (intent_hits >= 1 and request_context and pain_hits >= 1 and offer_hits >= 1)
     if not relevance_gate:
         DIAGNOSTICS["pages_rejected_no_buyer_evidence"] += 1
         for key, rejected in rejection_reasons.items():
