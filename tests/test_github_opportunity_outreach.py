@@ -44,8 +44,11 @@ class GitHubOutreachTests(unittest.TestCase):
         api.return_value = {"items": []}
         self.assertEqual(go.search_buyer_requests(), [])
         self.assertEqual(api.call_count, len(go.BUYER_QUERIES))
+        from urllib.parse import parse_qs, urlparse
+
         for call in api.call_args_list:
-            query = call.args[1]["q"]
+            self.assertEqual(len(call.args), 1)
+            query = parse_qs(urlparse(call.args[0]).query)["q"][0]
             self.assertIn("type:issue", query)
             self.assertIn("is:open", query)
             self.assertIn("updated:>=", query)
