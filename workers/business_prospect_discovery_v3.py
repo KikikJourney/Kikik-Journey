@@ -25,6 +25,11 @@ DIAGNOSTICS = {
     "content_pages_read": 0,
     "content_pages_empty": 0,
     "pages_rejected_no_buyer_evidence": 0,
+    "reject_no_request_context": 0,
+    "reject_no_intent": 0,
+    "reject_no_pain": 0,
+    "reject_no_offer_fit": 0,
+    "reject_no_business_context": 0,
     "pages_with_buyer_evidence": 0,
     "direct_business_emails_found": 0,
     "per_query": [],
@@ -315,14 +320,18 @@ def inspect(item, query):
         return None
 
     _, business_hits, pain_hits, intent_hits, offer_hits, offer, request_context = classify(item, body)
-    if (
-        not request_context
-        or intent_hits < 1
-        or pain_hits < 1
-        or offer_hits < 1
-        or business_hits < 1
-    ):
+    rejection_reasons = {
+        "reject_no_request_context": not request_context,
+        "reject_no_intent": intent_hits < 1,
+        "reject_no_pain": pain_hits < 1,
+        "reject_no_offer_fit": offer_hits < 1,
+        "reject_no_business_context": business_hits < 1,
+    }
+    if any(rejection_reasons.values()):
         DIAGNOSTICS["pages_rejected_no_buyer_evidence"] += 1
+        for key, rejected in rejection_reasons.items():
+            if rejected:
+                DIAGNOSTICS[key] += 1
         return None
     DIAGNOSTICS["pages_with_buyer_evidence"] += 1
 
@@ -382,24 +391,36 @@ def inspect(item, query):
 def main():
     prospects = []
     seen_urls = set()
+    # MAX_PER_DOMAIN limits accepted prospects, not pages inspected. Previously,
+    # rejected pages consumed the domain quota and could hide later valid requests
+    # from the same community or business site.
     domain_counts = {}
+    inspected_domain_counts = {}
+    max_inspections_per_domain = int(os.getenv("KJ_MAX_INSPECTIONS_PER_DOMAIN", "12"))
     max_queries = int(os.getenv("KJ_MAX_DISCOVERY_QUERIES", "10"))
     for query in QUERIES[:max_queries]:
         DIAGNOSTICS["queries_attempted"] += 1
         candidates = search(query)
         inspected = 0
         matched = 0
+        skipped_duplicate_or_capped = 0
         for item in candidates:
             domain = urlparse(item["url"]).netloc.lower().removeprefix("www.")
             url_key = item["url"].rstrip("/").lower()
-            if url_key in seen_urls or domain_counts.get(domain, 0) >= MAX_PER_DOMAIN:
+            if (
+                url_key in seen_urls
+                or domain_counts.get(domain, 0) >= MAX_PER_DOMAIN
+                or inspected_domain_counts.get(domain, 0) >= max_inspections_per_domain
+            ):
+                skipped_duplicate_or_capped += 1
                 continue
             seen_urls.add(url_key)
-            domain_counts[domain] = domain_counts.get(domain, 0) + 1
+            inspected_domain_counts[domain] = inspected_domain_counts.get(domain, 0) + 1
             inspected += 1
             hit = inspect(item, query)
             if hit:
                 prospects.append(hit)
+                domain_counts[domain] = domain_counts.get(domain, 0) + 1
                 matched += 1
             if len(prospects) >= LIMIT:
                 break
@@ -407,6 +428,7 @@ def main():
             "query": query,
             "search_candidates": len(candidates),
             "unique_pages_inspected": inspected,
+            "skipped_duplicate_or_domain_capped": skipped_duplicate_or_capped,
             "matching_prospects": matched,
         })
         if len(prospects) >= LIMIT:
