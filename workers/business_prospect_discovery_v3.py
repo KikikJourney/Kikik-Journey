@@ -17,17 +17,21 @@ MAX_PER_DOMAIN = int(os.getenv("KJ_MAX_PROSPECTS_PER_DOMAIN", "4"))
 MAX_CANDIDATES_PER_QUERY = int(os.getenv("KJ_MAX_CANDIDATES_PER_QUERY", "24"))
 
 QUERIES = [
+    # Local business pain hypotheses; search public web sources, not only GitHub.
+    '"UMKM" "pencatatan stok" manual WhatsApp usaha',
+    '"usaha kecil" "Google Sheets" pesanan otomatis',
+    '"toko online" "rekap pesanan" manual WhatsApp',
+    '"UMKM" "pembukuan" "input data" otomatis',
     '"need help" automation "google sheets" ecommerce -github -fiverr -upwork',
     '"looking for" automation "google sheets" business -github -fiverr',
     '"need a developer" woocommerce automation -github -fiverr',
-    '"looking for" "whatsapp automation" business -github -fiverr',
-    '"need help" "zapier" automation business -github -fiverr',
-    '"help me automate" business workflow -github -fiverr',
     'site:community.make.com/t/ "I need help" "Google Sheets" automation',
-    'site:community.make.com/t/ "looking for" automation "Google Sheets"',
     'site:community.n8n.io/t/ "help needed" automation WhatsApp',
-    'site:community.n8n.io/t/ "looking for" automation workflow',
     'site:community.zapier.com "looking to use" automation Sheets',
+    '"looking for" "whatsapp automation" business -github -fiverr',
+    '"help me automate" business workflow -github -fiverr',
+    'site:community.make.com/t/ "looking for" automation "Google Sheets"',
+    'site:community.n8n.io/t/ "looking for" automation workflow',
     'site:forum.pabbly.com "need assistance" automation "Google Sheets"',
     '"need help" WooCommerce orders inventory "contact us" -plugin -agency -zapier -n8n',
     '"looking for" WooCommerce automation store orders -plugin -agency -fiverr -upwork',
