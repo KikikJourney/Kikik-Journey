@@ -102,7 +102,7 @@ def github_find_tx(tx_hash_value):
     with urllib.request.urlopen(req, timeout=30) as r:
         items = json.loads(r.read().decode()).get("items", [])
     for item in items:
-        text = (item.get("title") or "") + "\\n" + (item.get("body") or "")
+        text = (item.get("title") or "") + "\n" + (item.get("body") or "")
         if normalized in text.lower():
             return item
     return None
@@ -167,7 +167,7 @@ def process_payment(mid,text,order=None):
     # may be retried, but a different order may not reuse its transaction hash.
     prior_tx = github_find_tx(h)
     if prior_tx:
-        prior_text = (prior_tx.get("title") or "") + "\\n" + (prior_tx.get("body") or "")
+        prior_text = (prior_tx.get("title") or "") + "\n" + (prior_tx.get("body") or "")
         prior_ref = ref(prior_text)
         if prior_ref and prior_ref != p_ref:
             return {"status":"payment_rejected","ref":p_ref,"verification":{"ok":False,"status":"transaction_already_used","tx_hash":h,"existing_order_ref":prior_ref}}
