@@ -43,6 +43,10 @@ QUERIES = [
     '"usaha kecil" "Google Sheets" pesanan otomatis',
     '"toko online" "rekap pesanan" manual WhatsApp',
     '"UMKM" "pembukuan" "input data" otomatis',
+    'site:community.make.com/t/ "WhatsApp Cloud API" "Google Sheets" "Hire Help"',
+    'site:community.make.com/t/ "Make freelancer needed for project" "happy to pay"',
+    'site:community.make.com/t/ "PDF invoice" "Google Sheets" "Gmail" "Make.com"',
+    'site:community.make.com/t/ "WordPress" "Brevo" "Make.com" "Hire Help"',
     '"need help" automation "google sheets" ecommerce -github -fiverr -upwork',
     '"looking for" automation "google sheets" business -github -fiverr',
     '"need a developer" woocommerce automation -github -fiverr',
@@ -297,22 +301,20 @@ def is_business_email(email, site):
 
 def classify(item, body):
     title = (item.get("title") or "").lower()
-    context = (body + " " + title).lower()
-    # Search snippets and community rules often contain boilerplate phrases like
-    # "hire a pro" or "help others". Buyer intent must appear near the page
-    # opening or in its title, not merely somewhere in a long article.
-    buyer_context = (title + " " + (body or "")[:1200]).lower()
-    business_hits = sum(k in context for k in BUSINESS)
-    pain_hits = sum(k in context for k in PAIN)
-    intent_hits = sum(k in buyer_context for k in INTENT)
+    # Score only the original post's opening, not the entire thread. Replies can
+    # contain other people's sales pitches and must not manufacture buyer intent.
+    primary_context = (title + " " + (body or "")[:1800]).lower()
+    business_hits = sum(k in primary_context for k in BUSINESS)
+    pain_hits = sum(k in primary_context for k in PAIN)
+    intent_hits = sum(k in primary_context for k in INTENT)
     ranked = sorted(
-        (sum(k in context for k in keywords), name)
+        (sum(k in primary_context for k in keywords), name)
         for name, keywords in OFFERS.items()
     )
     offer_hits, offer = ranked[-1]
     windows = [
         part.strip().lower()
-        for part in re.split(r"[\n.!?]+", (body or "")[:1200] + " " + item.get("title", ""))
+        for part in re.split(r"[\\n.!?]+", (body or "")[:1800] + " " + item.get("title", ""))
         if part.strip()
     ]
     request_context = any(
@@ -323,8 +325,7 @@ def classify(item, body):
         )
         for window in windows
     )
-    return context, business_hits, pain_hits, intent_hits, offer_hits, offer, request_context
-
+    return primary_context, business_hits, pain_hits, intent_hits, offer_hits, offer, request_context
 
 def inspect(item, query):
     if not is_candidate_page(item):
