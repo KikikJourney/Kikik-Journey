@@ -58,7 +58,7 @@ class ManualOrderGatewayTests(unittest.TestCase):
     @patch("workers.manual_order_gateway.github_find")
     def test_reused_transaction_for_different_order_is_rejected(self, find_order, find_tx, verify):
         tx = "0x" + "c" * 64
-        find_order.return_value = None
+        find_order.return_value = {"ref": "KJ-MANUAL-ABC123", "offer": "validation", "contact_email": "buyer@example.com", "source": "direct"}
         find_tx.return_value = {
             "title": "[ORDER PAID] KJ-MANUAL-OLD123",
             "body": "Order reference: KJ-MANUAL-OLD123\\nStatus: PAID\\nTX hash: " + tx,
