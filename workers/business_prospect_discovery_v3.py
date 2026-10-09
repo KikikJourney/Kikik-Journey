@@ -78,7 +78,7 @@ BUSINESS = (
     "our business", "my business", "our store", "my store", "ecommerce",
     "e-commerce", "customers", "orders", "inventory", "appointments",
     "bookings", "clients", "leads", "sales", "shop", "store", "agency",
-    "restaurant", "clinic", "company", "business",
+    "restaurant", "clinic", "company", "business", "usaha", "toko", "pesanan", "stok", "pelanggan", "penjualan", "pembukuan", "umkm",
 )
 PAIN = (
     "manual", "manually", "tedious", "time-consuming", "hours every",
@@ -147,15 +147,15 @@ def is_candidate_page(item):
     return True
 OFFERS = {
     "WooCommerce → Google Sheets Automation": (
-        "woocommerce", "google sheets", "orders", "inventory", "stock",
+        "woocommerce", "google sheets", "orders", "inventory", "stock", "pesanan", "rekap pesanan", "pencatatan stok",
     ),
     "WhatsApp → Google Sheets Mini Automation": (
         "whatsapp", "google sheets", "message", "attendance", "expense",
-        "stock", "follow-up",
+        "stock", "follow-up", "pesanan", "rekap", "pencatatan",
     ),
     "Workflow Rescue Pilot": (
         "automation", "automate", "workflow", "manual", "integration",
-        "zapier", "make", "n8n",
+        "zapier", "make", "n8n", "otomatisasi", "input data", "pencatatan", "rekap",
     ),
 }
 
