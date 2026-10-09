@@ -175,11 +175,13 @@ def checkout_url(lead, repo, issue):
 
 
 def already_contacted(repo, number):
-    # Search all comment pages: checking only page 1 misses markers on busy issues
-    # and can cause repeated outreach. Fail closed if the history is unusually large.
+    # The campaign began on 2026-10-09. Filter older comments out first, then
+    # scan recent pages; busy issues may have thousands of historical comments.
+    since = os.getenv("KJ_GITHUB_OUTREACH_HISTORY_SINCE", "2026-10-09T00:00:00Z")
     for page in range(1, 21):
+        query = urlencode({"since": since, "per_page": 100, "page": page})
         response = api(
-            f"https://api.github.com/repos/{repo}/issues/{number}/comments?per_page=100&page={page}"
+            f"https://api.github.com/repos/{repo}/issues/{number}/comments?{query}"
         )
         comments = response if isinstance(response, list) else response.get("comments", [])
         if any(MARKER in (comment.get("body") or "") for comment in comments):
