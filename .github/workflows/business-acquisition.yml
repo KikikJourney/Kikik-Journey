@@ -12,7 +12,6 @@ on:
       - "workers/business_email_outreach.py"
       - "workers/github_opportunity_outreach.py"
       - "workers/revenue_feedback.py"
-      - "data/profit_policy.json"
   workflow_dispatch:
     inputs:
       m1_run_id:
