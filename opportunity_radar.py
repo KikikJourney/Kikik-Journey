@@ -40,6 +40,24 @@ BUYER_SIGNALS = {
     "integration": 2, "workflow": 2, "monitoring": 2,
 }
 
+# Strong commercial/request language is deliberately separate from generic
+# popularity, issue volume, or technical pain. It is evidence of a request,
+# not proof that the author has budget or authority to buy.
+BUYER_INTENT_PHRASES = (
+    "need help", "looking for", "need a developer", "need someone",
+    "hire", "hiring", "paid help", "who can build", "who can fix",
+    "help me automate", "looking to automate", "want to automate",
+    "need this built", "need this fixed", "seeking", "can someone",
+    "recommend a developer", "request a quote", "budget", "freelance",
+    "contractor", "looking to hire", "willing to pay",
+)
+BUYER_PAIN_PHRASES = (
+    "manual", "manually", "broken", "failing", "error", "time-consuming",
+    "repetitive", "integration", "workflow", "automation", "automate",
+    "google sheets", "woocommerce", "whatsapp", "inventory", "orders",
+    "deployment", "data entry", "copy paste", "slow", "bottleneck",
+)
+
 def api(path, params=None, attempts=4):
     url = API + path
     if params:
@@ -114,24 +132,61 @@ def search_buyer_requests():
         except Exception as exc:
             failures.append({"query": query, "error": f"{type(exc).__name__}: {exc}"})
     requests = []
+    now = datetime.now(timezone.utc)
     for item in found.values():
-        text = f'{item.get("title", "")} {item.get("body") or ""}'
+        title = item.get("title") or ""
+        body = item.get("body") or ""
+        text = f"{title} {body}".strip()
+        lowered = text.lower()
+        intent_matches = [phrase for phrase in BUYER_INTENT_PHRASES if phrase in lowered]
+        pain_matches = [phrase for phrase in BUYER_PAIN_PHRASES if phrase in lowered]
         score = min(
             100,
-            keyword_score(text, PAIN) * 2
-            + keyword_score(text, BUYER_SIGNALS) * 2
-            + min(30, len(text) / 120),
+            keyword_score(text, PAIN) * 1.5
+            + keyword_score(text, BUYER_SIGNALS)
+            + min(15, len(text) / 180)
+            + min(30, len(intent_matches) * 10)
+            + min(15, len(pain_matches) * 3),
         )
+        updated_at = item.get("updated_at")
+        try:
+            updated = datetime.fromisoformat(updated_at.replace("Z", "+00:00"))
+            age_days = max(0, (now - updated).days)
+        except (AttributeError, ValueError):
+            age_days = None
+        # An issue becomes a qualified demand signal only when the source text
+        # contains both an explicit request and concrete problem language.
+        # Recent activity helps ordering but never substitutes for intent.
+        demand_status = "QUALIFIED_REQUEST" if intent_matches and pain_matches else "WATCH"
+        if age_days is not None and age_days > LOOKBACK_DAYS:
+            demand_status = "STALE"
         requests.append({
-            "title": item.get("title"),
+            "title": title,
             "url": item.get("html_url"),
             "repository": (item.get("repository_url") or "").rsplit("/", 1)[-1],
-            "updated_at": item.get("updated_at"),
+            "updated_at": updated_at,
+            "age_days": age_days,
             "score": round(score, 2),
+            "demand_status": demand_status,
+            "intent_evidence": intent_matches[:8],
+            "pain_evidence": pain_matches[:8],
+            "commercial_intent": len(intent_matches),
             "evidence": text[:1000],
-            "validation_action": "Verify that the request is still active, then offer a narrow fixed-scope implementation rather than building before commitment.",
+            "validation_action": (
+                "Confirm the issue author still needs the outcome and can approve a paid scope; ask one specific question before pitching."
+                if demand_status == "QUALIFIED_REQUEST"
+                else "Do not pitch yet; wait for explicit request language and a concrete pain signal."
+            ),
         })
-    requests.sort(key=lambda x: x["score"], reverse=True)
+    requests.sort(
+        key=lambda x: (
+            x["demand_status"] == "QUALIFIED_REQUEST",
+            x["demand_status"] == "WATCH",
+            x.get("score", 0),
+            -(x.get("age_days") if x.get("age_days") is not None else 9999),
+        ),
+        reverse=True,
+    )
     return requests[:25], failures
 
 def build_candidate(repo, readme, issues):
