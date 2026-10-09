@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from workers.revenue_feedback import build_feedback, ingest_event_file
+from workers.revenue_feedback import build_feedback, ingest_event_file, ingest_outreach_reports
 
 
 class RevenueFeedbackTests(unittest.TestCase):
@@ -41,6 +41,20 @@ class RevenueFeedbackTests(unittest.TestCase):
         result = build_feedback(events)
         self.assertEqual(result["totals"]["paid_orders"], 1)
         self.assertEqual(result["totals"]["revenue_idr"], 100)
+
+    def test_multiple_outreach_channels_feed_profit_feedback_once(self):
+        email_report = {"contacted_leads": [
+            {"event_id": "email-1", "source": "public_business_web_signal", "offer": "Workflow Rescue Pilot", "cost_idr": 0}
+        ]}
+        github_report = {"contacted_leads": [
+            {"event_id": "github-1", "source": "github_public_buyer_request", "offer": "Workflow Rescue Pilot", "cost_idr": 0},
+            {"event_id": "github-1", "source": "github_public_buyer_request", "offer": "Workflow Rescue Pilot", "cost_idr": 0},
+        ]}
+        events = ingest_outreach_reports([email_report, github_report], [])
+        result = build_feedback(events)
+        self.assertEqual(result["totals"]["contacted"], 2)
+        self.assertEqual(result["totals"]["events"], 2)
+        self.assertEqual(result["sources"]["github_public_buyer_request"]["contacted"], 1)
 
 
 if __name__ == "__main__":

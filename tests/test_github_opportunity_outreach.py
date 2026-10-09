@@ -30,7 +30,7 @@ class GitHubOutreachTests(unittest.TestCase):
             "items": [{
                 "html_url": "https://github.com/acme/shop/issues/7",
                 "title": "Need help fixing automation workflow",
-                "body": "We need a developer because our workflow is failing.",
+                "body": "We are looking to hire a freelancer for a paid project to fix our failing automation workflow; please send a quote.",
                 "updated_at": "2026-10-08T00:00:00Z",
             }]
         }
@@ -55,6 +55,44 @@ class GitHubOutreachTests(unittest.TestCase):
         self.assertIn("source=github-outreach", url)
         self.assertIn("repo=acme/shop", url)
         self.assertIn("issue=7", url)
+
+    def test_contacted_event_is_stable_and_attributed(self):
+        first = go.contacted_event(self.lead(), "acme/shop", 7, "2026-10-09T00:00:00+00:00")
+        replay = go.contacted_event(self.lead(), "acme/shop", 7, "2026-10-09T00:00:00+00:00")
+        second = go.contacted_event(self.lead(), "acme/shop", 7, "2026-10-10T00:00:00+00:00")
+        self.assertEqual(first["event_id"], replay["event_id"])
+        self.assertNotEqual(first["event_id"], second["event_id"])
+        self.assertEqual(first["source"], "github_public_buyer_request")
+        self.assertEqual(first["offer"], "Workflow Rescue Pilot")
+        self.assertEqual(first["occurred_at"], "2026-10-09T00:00:00+00:00")
+
+    def test_generic_technical_issue_is_not_a_commercial_buyer(self):
+        lead = self.lead()
+        self.assertFalse(go.eligible(lead))
+        lead["evidence"] = "We are looking to hire a freelancer for a paid project to fix our failing automation workflow."
+        self.assertTrue(go.eligible(lead))
+
+    @patch("workers.github_opportunity_outreach.api")
+    def test_already_contacted_checks_later_comment_pages(self, api):
+        api.side_effect = [
+            [{"body": f"ordinary comment {i}"} for i in range(100)],
+            [{"body": f"reply {i}"} for i in range(99)] + [{"body": go.MARKER}],
+        ]
+        self.assertTrue(go.already_contacted("acme/shop", 7))
+        self.assertEqual(api.call_count, 2)
+        self.assertIn("page=2", api.call_args_list[1].args[0])
+
+    @patch("workers.github_opportunity_outreach.api")
+    def test_buyer_discovery_rejects_noncommercial_technical_requests(self, api):
+        api.return_value = {
+            "items": [{
+                "html_url": "https://github.com/acme/shop/issues/7",
+                "title": "Need help fixing automation workflow",
+                "body": "We need a developer because our workflow is failing.",
+                "updated_at": "2026-10-08T00:00:00Z",
+            }]
+        }
+        self.assertEqual(go.search_buyer_requests(), [])
 
 
 if __name__ == "__main__":
