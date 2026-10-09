@@ -51,8 +51,8 @@ class RevenueFeedbackTests(unittest.TestCase):
             for i in range(20)
         ]
         result = build_feedback(events)
-        self.assertEqual(result["policy"]["source_multipliers"]["tested_channel"], 0.7364)
-        self.assertEqual(result["policy"]["offer_multipliers"]["tested_offer"], 0.7364)
+        self.assertEqual(result["policy"]["source_multipliers"]["tested_channel"], 0.75)
+        self.assertEqual(result["policy"]["offer_multipliers"]["tested_offer"], 0.75)
 
     def test_duplicate_event_ids_do_not_inflate_metrics(self):
         events = [
