@@ -72,6 +72,42 @@ INTENT = (
     "need this built", "need this fixed", "seeking", "can someone",
     "anyone able", "recommend a developer",
 )
+
+GENERIC_TITLES = {
+    "log in", "login", "sign in", "sign up", "how do i...?",
+    "how do i", "get help", "get support", "contact us", "contact",
+    "support", "help center", "community", "home", "search",
+    "topics", "categories", "latest", "popular",
+}
+GENERIC_PATH_PARTS = (
+    "/login", "/ssoproxy/", "/search", "/categories", "/category/",
+    "/tags/", "/tag/", "/latest", "/popular", "/contact-us", "/contact",
+)
+
+
+def is_candidate_page(item):
+    """Reject navigation/category pages before expensive content inspection."""
+    title = re.sub(r"\s+", " ", (item.get("title") or "").lower()).strip(" .")
+    if title in GENERIC_TITLES or any(title.startswith(x + " |") for x in GENERIC_TITLES):
+        return False
+    url = normalize_url(item.get("url"))
+    if not url:
+        return False
+    parsed = urlparse(url)
+    domain = parsed.netloc.lower().removeprefix("www.")
+    path = parsed.path.lower().rstrip("/")
+    if not path or any(part in path for part in GENERIC_PATH_PARTS):
+        return False
+
+    # Community home/category URLs often contain generic help/navigation text.
+    # Only inspect individual, identifiable discussion topics from these hosts.
+    if domain == "community.zapier.com":
+        return bool(re.fullmatch(r"/[^/]+-\d+/[^/]+-\d+", path))
+    if domain in {"community.make.com", "community.n8n.io"}:
+        return bool(re.fullmatch(r"/t/[^/]+/\d+", path))
+    if domain == "forum.pabbly.com":
+        return bool(re.fullmatch(r"/threads/[^/]+\.\d+", path))
+    return True
 OFFERS = {
     "WooCommerce → Google Sheets Automation": (
         "woocommerce", "google sheets", "orders", "inventory", "stock",
@@ -187,10 +223,13 @@ def search(query):
                 continue
             parsed_url = urlparse(clean_url)
             canonical = parsed_url._replace(query="", fragment="").geturl().rstrip("/")
+            candidate = {"title": html.unescape(title), "url": canonical}
+            if not is_candidate_page(candidate):
+                continue
             if canonical.lower() in seen:
                 continue
             seen.add(canonical.lower())
-            found.append({"title": html.unescape(title), "url": canonical})
+            found.append(candidate)
             if len(found) >= MAX_CANDIDATES_PER_QUERY:
                 return found
     return found
@@ -241,6 +280,8 @@ def classify(item, body):
 
 
 def inspect(item, query):
+    if not is_candidate_page(item):
+        return None
     body, final = read(item["url"])
     if not body:
         return None
