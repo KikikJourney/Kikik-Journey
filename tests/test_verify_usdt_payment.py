@@ -26,6 +26,24 @@ class UsdtVerifierTests(unittest.TestCase):
         r=verify_payment("0x"+"aa"*32,"2","0x4ce7004e7127f8b2386eb355e088f127c24b3fac",rpc_url=self.RPC)
         self.assertFalse(r["ok"]); self.assertEqual(r["status"],"amount_or_recipient_mismatch")
     @patch("workers.verify_usdt_payment.rpc")
+    def test_wrong_recipient_rejected(self,m):
+        m.side_effect=self.rpc
+        r=verify_payment("0x"+"aa"*32,"1","0x"+"22"*20,rpc_url=self.RPC)
+        self.assertFalse(r["ok"]); self.assertEqual(r["status"],"amount_or_recipient_mismatch")
+    @patch("workers.verify_usdt_payment.rpc")
+    def test_insufficient_confirmations_rejected(self,m):
+        def low_confirmations(url,method,params):
+            if method=="eth_blockNumber": return "0x65"
+            return self.rpc(url,method,params)
+        m.side_effect=low_confirmations
+        r=verify_payment("0x"+"aa"*32,"1","0x4ce7004e7127f8b2386eb355e088f127c24b3fac",rpc_url=self.RPC,min_confirmations=12)
+        self.assertFalse(r["ok"]); self.assertEqual(r["status"],"insufficient_confirmations")
+    def test_malformed_tx_hash_rejected(self):
+        with patch("workers.verify_usdt_payment.rpc") as m:
+            with self.assertRaises(ValueError):
+                verify_payment("bad-hash","1","0x4ce7004e7127f8b2386eb355e088f127c24b3fac",rpc_url=self.RPC)
+            m.assert_not_called()
+    @patch("workers.verify_usdt_payment.rpc")
     def test_wrong_chain_rejected(self,m):
         m.side_effect=lambda url,method,params: "0x1" if method=="eth_chainId" else None
         r=verify_payment("0x"+"aa"*32,"1","0x4ce7004e7127f8b2386eb355e088f127c24b3fac",rpc_url=self.RPC)
