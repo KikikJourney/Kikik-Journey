@@ -116,6 +116,19 @@ class BusinessProspectDiscoveryV3Tests(unittest.TestCase):
         self.assertEqual(hit["status"], "QUALIFIED")
         self.assertTrue(hit["actionable"])
 
+    def test_explicit_forum_buyer_request_without_business_keywords_is_retained(self):
+        item = {
+            "title": "I need help with a scenario to connect the WhatsApp Cloud API with Google Sheets",
+            "url": "https://example.com/request",
+        }
+        body = "I need help with a scenario to connect the WhatsApp Cloud API with Google Sheets."
+        with patch.object(discovery, "read", return_value=(body, item["url"])):
+            hit = discovery.inspect(item, "test query")
+        self.assertIsNotNone(hit)
+        self.assertEqual(hit["status"], "QUALIFIED")
+        self.assertFalse(hit["actionable"])
+        self.assertEqual(hit["reachability"], "unresolved")
+
     def test_rejected_pages_do_not_consume_domain_prospect_quota(self):
         from tempfile import TemporaryDirectory
         from pathlib import Path
