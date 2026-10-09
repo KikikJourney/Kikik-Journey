@@ -38,11 +38,25 @@ OFFERS = [
 ]
 
 INTENT = (
-    "need help", "need someone", "looking for", "need a developer", "hire",
-    "hiring", "paid help", "who can build", "who can fix", "help me automate",
-    "looking to automate", "want to automate", "need this built", "need this fixed",
+    "need help", "looking for a developer", "looking for a freelancer",
+    "looking for someone to", "need a developer", "need someone to",
+    "hire a developer", "hiring a developer", "looking to hire",
+    "freelancer wanted", "contractor wanted", "paid help", "paid project",
+    "who can build", "who can fix", "help me automate", "looking to automate",
+    "want to automate", "need this built", "need this fixed",
+    "seeking a freelancer", "seeking a contractor", "recommend a developer",
+    "request a quote", "pay someone to", "willing to pay",
 )
-ARTIFACTS = ("roadmap", "research report", "report only", "backlog", "directory", "job board", "status update")
+NEGATED_INTENT = (
+    "not looking to hire", "not looking for a developer",
+    "not looking for a freelancer", "not a paid project",
+    "no budget for a developer", "do not contact",
+)
+ARTIFACTS = (
+    "roadmap", "research report", "report only", "backlog", "directory",
+    "job board", "status update", "community guide", "community guidelines",
+    "start here", "get started", "house rules", "help center", "knowledge base",
+)
 
 
 def norm(text):
@@ -73,11 +87,16 @@ def match_offer(text):
 
 
 def gate(item, offer):
-    t = norm(f'{item.get("title","")} {item.get("evidence",item.get("text",""))}')
+    title = norm(item.get("title", ""))
+    evidence = item.get("evidence", item.get("text", "")) or ""
+    # Long community pages contain boilerplate ("hire a pro", "help others").
+    # Only use the title and opening section as intent evidence.
+    t = norm(f"{title} {evidence[:1200]}")
     return (
-        any(x in t for x in INTENT)
+        not any(x in t for x in NEGATED_INTENT)
+        and not any(x in title for x in ARTIFACTS)
+        and any(x in t for x in INTENT)
         and any(x in t for x in offer["keywords"])
-        and not any(x in t for x in ARTIFACTS)
     )
 
 
