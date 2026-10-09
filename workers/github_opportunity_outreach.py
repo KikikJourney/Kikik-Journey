@@ -124,12 +124,13 @@ def search_buyer_requests():
     for query in BUYER_QUERIES:
         diagnostics["queries_attempted"] += 1
         try:
-            payload = api("https://api.github.com/search/issues", {
+            search_url = "https://api.github.com/search/issues?" + urlencode({
                 "q": query + f" type:issue is:open updated:>={cutoff}",
                 "sort": "updated",
                 "order": "desc",
                 "per_page": 15,
             })
+            payload = api(search_url)
             items = payload.get("items", [])
             diagnostics["raw_hits"] += len(items)
             diagnostics["per_query"].append({

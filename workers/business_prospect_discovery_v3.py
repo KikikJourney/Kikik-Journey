@@ -84,12 +84,18 @@ PAIN = (
     "bottleneck", "integration", "automation", "automate", "slow",
     "error-prone", "data entry", "copy paste",
 )
+# Strong buyer-request phrases only. Generic words such as "hire", "help",
+# "looking for", and "seeking" also occur in forum rules and navigation copy.
 INTENT = (
-    "need help", "looking for", "need a developer", "need someone",
-    "hire", "hiring", "paid help", "who can build", "who can fix",
-    "help me automate", "looking to automate", "want to automate",
-    "need this built", "need this fixed", "seeking", "can someone",
-    "anyone able", "recommend a developer",
+    "need help", "looking for a developer", "looking for a freelancer",
+    "looking for someone to", "need a developer", "need someone to",
+    "hire a developer", "hiring a developer", "looking to hire",
+    "freelancer wanted", "contractor wanted", "paid help", "paid project",
+    "who can build", "who can fix", "help me automate",
+    "looking to automate", "want to automate", "need this built",
+    "need this fixed", "seeking a freelancer", "seeking a contractor",
+    "recommend a developer", "request a quote", "pay someone to",
+    "willing to pay",
 )
 
 GENERIC_TITLES = {
@@ -286,9 +292,13 @@ def is_business_email(email, site):
 def classify(item, body):
     title = (item.get("title") or "").lower()
     context = (body + " " + title).lower()
+    # Search snippets and community rules often contain boilerplate phrases like
+    # "hire a pro" or "help others". Buyer intent must appear near the page
+    # opening or in its title, not merely somewhere in a long article.
+    buyer_context = (title + " " + (body or "")[:1200]).lower()
     business_hits = sum(k in context for k in BUSINESS)
     pain_hits = sum(k in context for k in PAIN)
-    intent_hits = sum(k in context for k in INTENT)
+    intent_hits = sum(k in buyer_context for k in INTENT)
     ranked = sorted(
         (sum(k in context for k in keywords), name)
         for name, keywords in OFFERS.items()
@@ -296,7 +306,7 @@ def classify(item, body):
     offer_hits, offer = ranked[-1]
     windows = [
         part.strip().lower()
-        for part in re.split(r"[\n.!?]+", body + " " + item.get("title", ""))
+        for part in re.split(r"[\n.!?]+", (body or "")[:1200] + " " + item.get("title", ""))
         if part.strip()
     ]
     request_context = any(
