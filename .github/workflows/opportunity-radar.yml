@@ -3,9 +3,16 @@ name: AI Opportunity Radar
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "data/**"
-      - "profit_report.json"
+    paths:
+      - ".github/workflows/opportunity-radar.yml"
+      - "opportunity_radar.py"
+      - "opportunity_packager.py"
+      - "workers/business_prospect_discovery_v3.py"
+      - "workers/business_first_acquisition.py"
+      - "workers/batch_prospect_worker.py"
+      - "workers/prospect_worker.py"
+      - "integrations/prospect_queue.json"
+      - "integrations/prospect_queue.schema.json"
   workflow_dispatch:
   workflow_call:
   schedule:

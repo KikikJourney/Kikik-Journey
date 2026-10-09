@@ -71,6 +71,12 @@ class BusinessProspectDiscoveryV3Tests(unittest.TestCase):
             "url": "https://community.zapier.com/how-do-i-3/example-53828",
         }))
 
+    def test_rejects_featured_article_even_if_url_looks_like_topic(self):
+        self.assertFalse(discovery.is_candidate_page({
+            "title": "How do you decide which apps to integrate with?",
+            "url": "https://community.zapier.com/featured-articles-65/how-do-you-decide-which-app-s-to-integrate-with-9617",
+        }))
+
     def test_rejects_generic_community_category_even_if_body_has_keywords(self):
         with patch.object(discovery, "read", return_value=(
             "Have a question? Get help. Automate your business with Google Sheets.",
