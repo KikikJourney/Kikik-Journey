@@ -53,6 +53,21 @@ class ManualOrderGatewayTests(unittest.TestCase):
         self.assertEqual(args[2]["to"], "buyer@example.com")
         self.assertEqual(args[2]["labels"], ["kj-paid"])
 
+    @patch("workers.manual_order_gateway.verify_payment")
+    @patch("workers.manual_order_gateway.github_find_tx")
+    @patch("workers.manual_order_gateway.github_find")
+    def test_reused_transaction_for_different_order_is_rejected(self, find_order, find_tx, verify):
+        tx = "0x" + "c" * 64
+        find_order.return_value = None
+        find_tx.return_value = {
+            "title": "[ORDER PAID] KJ-MANUAL-OLD123",
+            "body": "Order reference: KJ-MANUAL-OLD123\\nStatus: PAID\\nTX hash: " + tx,
+        }
+        result = process_payment("m2", self.text + "\\nTransaction hash: " + tx)
+        self.assertEqual(result["status"], "payment_rejected")
+        self.assertEqual(result["verification"]["status"], "transaction_already_used")
+        verify.assert_not_called()
+
     def test_reject_missing_contact(self):
         p=parse(self.text.replace("buyer@example.com",""))
         self.assertEqual(p["contact_email"],"")
