@@ -23,6 +23,10 @@ on:
         description: "Completed M3 workflow run ID"
         required: false
         type: string
+      acquisition_run_id:
+        description: "Completed Business Acquisition run ID"
+        required: false
+        type: string
   workflow_call:
 
 permissions:
@@ -56,6 +60,33 @@ jobs:
           run-id: ${{ github.event.workflow_run.id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Download GitHub outreach outcome from completed workflow
+        if: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.name == 'Business Acquisition Engine' }}
+        uses: actions/download-artifact@v5
+        with:
+          name: github-outreach-report
+          path: input/github
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download email outreach report from dispatched acquisition run
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.acquisition_run_id != '' }}
+        uses: actions/download-artifact@v5
+        with:
+          name: business-outreach-report
+          path: input
+          run-id: ${{ inputs.acquisition_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download GitHub outreach report from dispatched acquisition run
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.acquisition_run_id != '' }}
+        uses: actions/download-artifact@v5
+        with:
+          name: github-outreach-report
+          path: input/github
+          run-id: ${{ inputs.acquisition_run_id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Download M3 revenue events from dispatched M3 run
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.m3_run_id != '' }}
         uses: actions/download-artifact@v5
@@ -81,6 +112,13 @@ jobs:
           name: business-outreach-report
           path: input
 
+      - name: Download GitHub outreach outcome from orchestrator run
+        if: ${{ github.event_name == 'workflow_call' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: github-outreach-report
+          path: input/github
+
       - name: Download M3 revenue events from orchestrator run
         if: ${{ github.event_name == 'workflow_call' }}
         uses: actions/download-artifact@v4
@@ -93,12 +131,16 @@ jobs:
         run: |
           mkdir -p input
           test -f input/outreach_report.json || printf '%s\n' '{"contacted_leads":[]}' > input/outreach_report.json
+          mkdir -p input/github
+          test -f input/github/github_outreach_report.json || printf '%s\n' '{"contacted_leads":[]}' > input/github/github_outreach_report.json
           test -f input/revenue_events.json || printf '%s\n' '{"events":[]}' > input/revenue_events.json
 
       - name: Normalize M3/M2 inputs
         run: |
           mkdir -p input
           test -f input/outreach_report.json || printf '%s\n' '{"contacted_leads":[]}' > input/outreach_report.json
+          mkdir -p input/github
+          test -f input/github/github_outreach_report.json || printf '%s\n' '{"contacted_leads":[]}' > input/github/github_outreach_report.json
           test -f input/revenue_events.json || printf '%s\n' '{"events":[]}' > input/revenue_events.json
 
       - name: Validate and build profit policy
@@ -108,6 +150,7 @@ jobs:
           python workers/revenue_feedback.py \
             --events data/revenue_events.json \
             --outreach-report input/outreach_report.json \
+            --extra-outreach-report input/github/github_outreach_report.json \
             --event-file input/revenue_events.json \
             --policy data/profit_policy.json \
             --report profit_report.json
