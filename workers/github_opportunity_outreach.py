@@ -16,7 +16,7 @@ import os
 import re
 import urllib.request
 from urllib.parse import urlencode
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 MAX_PER_RUN = int(os.getenv("KJ_GITHUB_MAX_OUTREACH_PER_RUN", "3"))
 MIN_SCORE = float(os.getenv("KJ_GITHUB_MIN_OUTREACH_SCORE", "80"))
@@ -78,8 +78,12 @@ BUYER_QUERIES = (
     '"request a quote" WooCommerce automation',
     '"need a contractor" automation workflow',
     '"hire a developer" "Google Sheets"',
+    '"looking for a freelancer" automation "paid project"',
+    '"request a quote" "Google Sheets" automation',
 )
+DISCOVERY_LOOKBACK_DAYS = int(os.getenv("KJ_GITHUB_BUYER_LOOKBACK_DAYS", "90"))
 MAX_DISCOVERY = int(os.getenv("KJ_GITHUB_MAX_DISCOVERY_CANDIDATES", "25"))
+SEARCH_DIAGNOSTICS = {}
 
 
 def api(url, method="GET", payload=None):
@@ -103,21 +107,46 @@ def api(url, method="GET", payload=None):
 
 
 def search_buyer_requests():
-    """Discover GitHub buyer requests independently of the public-web/email channel."""
+    """Discover recent public GitHub buyer requests with fail-closed commercial intent."""
     found = {}
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=DISCOVERY_LOOKBACK_DAYS)).date().isoformat()
+    diagnostics = {
+        "lookback_days": DISCOVERY_LOOKBACK_DAYS,
+        "cutoff_date": cutoff,
+        "queries_attempted": 0,
+        "raw_hits": 0,
+        "unique_requests": 0,
+        "commercial_gate_rejected": 0,
+        "qualified_requests": 0,
+        "query_failures": 0,
+        "per_query": [],
+    }
     for query in BUYER_QUERIES:
-        data = api("https://api.github.com/search/issues?" + urlencode({
-            "q": query + " type:issue is:open",
-            "sort": "updated",
-            "order": "desc",
-            "per_page": 15,
-        }))
-        for item in data.get("items", []):
-            if item.get("pull_request"):
-                continue
-            url = item.get("html_url")
-            if url:
-                found[url] = item
+        diagnostics["queries_attempted"] += 1
+        try:
+            payload = api("https://api.github.com/search/issues", {
+                "q": query + f" type:issue is:open updated:>={cutoff}",
+                "sort": "updated",
+                "order": "desc",
+                "per_page": 15,
+            })
+            items = payload.get("items", [])
+            diagnostics["raw_hits"] += len(items)
+            diagnostics["per_query"].append({
+                "query": query, "hits": len(items), "status": "ok",
+            })
+            for item in items:
+                if item.get("pull_request"):
+                    continue
+                url = item.get("html_url")
+                if url:
+                    found[url] = item
+        except Exception as exc:
+            diagnostics["query_failures"] += 1
+            diagnostics["per_query"].append({
+                "query": query, "hits": 0, "status": "error",
+                "error_type": type(exc).__name__,
+            })
 
     candidates = []
     for item in found.values():
@@ -127,6 +156,7 @@ def search_buyer_requests():
         # The title and opening paragraph must state an actual paid request.
         # Do not infer intent from quoted Reddit posts, SEO copy, or unrelated later text.
         if not commercial_request_gate(title, body):
+            diagnostics["commercial_gate_rejected"] += 1
             continue
         intent_hits = sum(x in f"{title} {body[:1200]}".lower() for x in INTENT)
         pain_hits = sum(x in f"{title} {body[:1200]}".lower() for x in PAIN)
@@ -145,8 +175,11 @@ def search_buyer_requests():
             "updated_at": item.get("updated_at"),
         })
     candidates.sort(key=lambda x: x["priority_score"], reverse=True)
+    diagnostics["unique_requests"] = len(found)
+    diagnostics["qualified_requests"] = len(candidates)
+    SEARCH_DIAGNOSTICS.clear()
+    SEARCH_DIAGNOSTICS.update(diagnostics)
     return candidates[:MAX_DISCOVERY]
-
 
 def match_offer(text):
     low = (text or "").lower()
@@ -273,8 +306,9 @@ def main():
         leads = list(by_url.values())
 
     report = {"eligible": 0, "contacted": 0, "skipped": {}, "attempts": [], "contacted_leads": [],
+              "discovery": dict(SEARCH_DIAGNOSTICS),
               "max_per_run": MAX_PER_RUN, "min_score": MIN_SCORE,
-              "active_days": ACTIVE_DAYS, "policy": "GitHub-only buyer-request discovery; strict active-repository + opportunity/probability gate; one-to-one; deduplicated; fail-closed"}
+              "active_days": ACTIVE_DAYS, "policy": "GitHub-only buyer-request discovery; recent open issues only; strict active-repository + opportunity/probability gate; one-to-one; deduplicated; fail-closed"}
     for lead in leads:
         if report["contacted"] >= MAX_PER_RUN:
             break
