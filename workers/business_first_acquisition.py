@@ -15,7 +15,7 @@ OFFERS = [
         "name": "WooCommerce → Google Sheets Automation",
         "price_idr": 399000,
         "checkout": "sales/manual_order.html?offer=woocommerce&source=outreach",
-        "keywords": ["woocommerce", "google sheets", "orders", "inventory", "stock", "order data", "pesanan", "rekap pesanan", "pencatatan stok"],
+        "keywords": ["woocommerce", "google sheets", "orders", "inventory", "stock", "order data", "pesanan", "rekap pesanan", "pencatatan stok", "pesanan", "rekap pesanan", "pencatatan stok"],
         "scope": "One WooCommerce store + one Google Sheet workflow + agreed fields.",
         "timebox": "1-2 days",
     },
