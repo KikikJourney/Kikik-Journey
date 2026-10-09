@@ -53,6 +53,31 @@ The public-research pass must include:
 
 For each finding record: source URL, observation date, buyer segment, exact problem evidence, existing workaround, alternatives/pricing, confidence, and next validation action. Separate **problem evidence**, **commercial-intent evidence**, and **payment evidence**. Never promote a lead to customer status based on a search result or an AI-generated score.
 
+## Live public buyer-request validation — 9 October 2026
+
+These are public requests for paid help, not Kikik Journey customers. The posts are evidence of problem/intent only; no outreach response or purchase has been verified.
+
+| Public request | Evidence and recency | Fit to current offers | Qualification / next action |
+|---|---|---|---|
+| [Make freelancer needed for project](https://community.make.com/t/make-freelancer-needed-for-project/115431) | Original post says the author is stuck and is happy to pay for help; thread activity shown on 8 October and 76 replies. | Best match for Workflow Rescue Pilot, but the actual workflow is unspecified and the thread is crowded. | Highest priority for a tightly scoped first reply; ask for the workflow goal, current failing step, and a redacted screenshot. Do not quote implementation before scope is known. |
+| [WhatsApp Cloud API → Google Sheets](https://community.make.com/t/i-need-help-with-a-scenario-to-connect-the-whatsapp-cloud-api-with-google-sheets/115156) | Explicit request for help; thread activity shown on 9 October and 51 replies. The initial post does not specify inbound vs outbound flow or confirm that Meta/Make are configured. | Direct fit for WhatsApp → Google Sheets Mini Automation. | Strong problem-fit but high competition and unresolved scope. Offer a one-direction starter only if API access is already configured; separate API/account setup and platform fees. |
+| [PDF invoice emailing automation](https://community.make.com/t/need-make-com-expert-to-automate-pdf-invoice-emailing-from-computer-desktop-or-can-be-from-google-sheets-google-drive/112489) | Commercial janitorial business with about 80 recurring clients; needs scheduled invoice-PDF matching, email delivery, sent-state tracking, and safe manual resend. Thread activity shown on 9 October and 46 replies. | A possible Workflow Rescue / custom automation opportunity, but materially broader than the current small pilot. | Do not sell at the current Rp250,000 implementation scope. First offer a diagnostic or 5-client synthetic/redacted pilot, with Google Drive requirement and duplicate/misdelivery tests explicit. |
+| [WordPress + Make + Brevo integration](https://community.make.com/t/wordpress-make-com-brevo-integration-expert/115942) | Detailed multi-system migration/integration request; thread activity shown on 9 October and 77 replies. One buyer reply states an approximate USD 25/hour budget. | Too broad for any current fixed-price starter without a diagnostic. | Watch only; narrow to one form → Make → Brevo path and test consent, duplicates, and failure handling before quoting. |
+
+### Pricing decision from the live sample
+
+- The WhatsApp offer at Rp199,000 is about US$11 at the repository's configured quote rate. Public replies in the exact-fit thread propose roughly US$75–250 for implementation. This does **not** prove the market will pay those prices, but it shows the current offer is priced far below visible competing quotes.
+- Workflow Rescue at Rp250,000 is about US$14. The public invoice automation thread shows materially larger scopes quoted around US$120–650. Do not promise a full production build at the current pilot price.
+- Keep the current prices as *entry-pilot hypotheses* for now, but narrow scope: one direction or one failing path, existing accounts/connections already working, redacted/synthetic test data, explicit acceptance checks, and a written handover. Quote integrations, migrations, and production rollouts separately.
+- The Rp399,000 WooCommerce offer should not compete with generic connectors. Validate only a specific reconciliation, SKU mapping, duplicate-sync, exception recovery, or custom-reporting problem.
+- No relevant public evidence found here validates the Rp19,000 AI Opportunity Validation Kit. Keep it available but do not prioritize paid-kit expansion until buyer behavior supports it.
+
+### What this validates — and what it does not
+
+**Validated at the problem level:** there are current public requests for paid workflow help, including an exact WhatsApp-to-Sheets request and a generic paid workflow-rescue request.
+
+**Not yet validated:** the buyer's willingness to buy from Kikik Journey, acceptance of our exact scope/price, a reply to our outreach, or any paid order. These threads already contain many competing replies; they should not be counted as reachable leads until a one-to-one response is possible and the request is still open.
+
 ## Decision gates
 
 - **Keep testing:** repeated, specific problem evidence and a buyer that can be reached.
