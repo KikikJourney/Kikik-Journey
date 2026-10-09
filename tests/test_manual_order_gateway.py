@@ -64,7 +64,7 @@ class ManualOrderGatewayTests(unittest.TestCase):
             "title": "[ORDER PAID] KJ-MANUAL-OLD123",
             "body": "Order reference: KJ-MANUAL-OLD123\\nStatus: PAID\\nTX hash: " + tx,
         }
-        result = process_payment("m2", self.text + "\\nTransaction hash: " + tx)
+        result = process_payment("m2", self.text + "\nTransaction hash: " + tx, order={"ref": "KJ-MANUAL-ABC123", "offer": "validation", "contact_email": "buyer@example.com", "source": "direct"})
         self.assertEqual(result["status"], "payment_rejected")
         self.assertEqual(result["verification"]["status"], "transaction_already_used")
         verify.assert_not_called()
