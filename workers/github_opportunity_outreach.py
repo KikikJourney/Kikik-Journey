@@ -201,12 +201,13 @@ def eligible(lead):
 
 def contacted_event(lead, repo, issue, occurred_at=None):
     """Stable event record for a successful public GitHub issue response."""
-    raw = f"{repo}#{issue}|{lead.get('matched_offer', 'unknown')}"
+    occurred_at = occurred_at or datetime.now(timezone.utc).isoformat()
+    raw = f"{repo}#{issue}|{lead.get('matched_offer', 'unknown')}|{occurred_at}"
     return {
         "event_id": "github-contact-" + hashlib.sha256(raw.encode()).hexdigest()[:24],
         "source": "github_public_buyer_request",
         "offer": lead.get("matched_offer", "unknown"),
-        "occurred_at": occurred_at or datetime.now(timezone.utc).isoformat(),
+        "occurred_at": occurred_at,
         "cost_idr": float(os.getenv("KJ_GITHUB_OUTREACH_COST_IDR", "0")),
     }
 
