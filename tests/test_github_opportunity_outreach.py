@@ -80,6 +80,7 @@ class GitHubOutreachTests(unittest.TestCase):
         ]
         self.assertTrue(go.already_contacted("acme/shop", 7))
         self.assertEqual(api.call_count, 2)
+        self.assertIn("since=", api.call_args_list[0].args[0])
         self.assertIn("page=2", api.call_args_list[1].args[0])
 
     @patch("workers.github_opportunity_outreach.api")
