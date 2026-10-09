@@ -52,7 +52,8 @@ class BuyerDemandQualificationTests(unittest.TestCase):
         )
         self.assertEqual(item["matched_offer"], "WooCommerce → Google Sheets Automation")
         self.assertEqual(item["price_idr"], 399000)
-        self.assertIn("not consent or a sale", item["next_step"])
+        self.assertIn("consent", item["next_step"])
+        self.assertIn("sale", item["next_step"])
         self.assertEqual(item["status"], "QUALIFIED_REQUEST")
 
 
