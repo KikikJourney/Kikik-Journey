@@ -10,6 +10,7 @@ Fail-closed policy:
 - CTA always points to Central Checkout with source attribution
 """
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -178,6 +179,18 @@ def eligible(lead):
             and bool(lead.get("checkout_path")))
 
 
+def contacted_event(lead, repo, issue, occurred_at=None):
+    """Stable event record for a successful public GitHub issue response."""
+    raw = f"{repo}#{issue}|{lead.get('matched_offer', 'unknown')}"
+    return {
+        "event_id": "github-contact-" + hashlib.sha256(raw.encode()).hexdigest()[:24],
+        "source": "github_public_buyer_request",
+        "offer": lead.get("matched_offer", "unknown"),
+        "occurred_at": occurred_at or datetime.now(timezone.utc).isoformat(),
+        "cost_idr": float(os.getenv("KJ_GITHUB_OUTREACH_COST_IDR", "0")),
+    }
+
+
 def comment_body(lead, checkout):
     return (f"{MARKER}\n"
             f"Your request about **{lead.get('title') or 'this project'}** appears to be a focused fit for "
@@ -205,7 +218,7 @@ def main():
             by_url.setdefault(lead["url"].rstrip("/"), lead)
         leads = list(by_url.values())
 
-    report = {"eligible": 0, "contacted": 0, "skipped": {}, "attempts": [],
+    report = {"eligible": 0, "contacted": 0, "skipped": {}, "attempts": [], "contacted_leads": [],
               "max_per_run": MAX_PER_RUN, "min_score": MIN_SCORE,
               "active_days": ACTIVE_DAYS, "policy": "GitHub-only buyer-request discovery; strict active-repository + opportunity/probability gate; one-to-one; deduplicated; fail-closed"}
     for lead in leads:
@@ -237,6 +250,7 @@ def main():
                 api(f"https://api.github.com/repos/{repo}/issues/{issue}/comments", "POST",
                     {"body": comment_body(lead, checkout_url(lead, repo, issue))})
                 report["contacted"] += 1
+                report["contacted_leads"].append(contacted_event(lead, repo, issue))
                 attempt["status"] = "contacted"
             report["eligible"] += 1
             report["attempts"].append(attempt)
