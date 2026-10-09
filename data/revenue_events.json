@@ -5,7 +5,7 @@
       "event_type": "contacted",
       "source": "github_public_buyer_request",
       "offer": "Workflow Rescue Pilot",
-      "cost_idr": 0.0,
+      "cost_idr": 0,
       "occurred_at": "2026-10-09T03:45:00.781187+00:00"
     },
     {
@@ -13,7 +13,7 @@
       "event_type": "contacted",
       "source": "github_public_buyer_request",
       "offer": "Workflow Rescue Pilot",
-      "cost_idr": 0.0,
+      "cost_idr": 0,
       "occurred_at": "2026-10-09T03:45:01.944263+00:00"
     },
     {
@@ -21,8 +21,56 @@
       "event_type": "contacted",
       "source": "github_public_buyer_request",
       "offer": "Workflow Rescue Pilot",
-      "cost_idr": 0.0,
+      "cost_idr": 0,
       "occurred_at": "2026-10-09T03:45:03.012733+00:00"
+    },
+    {
+      "event_id": "legacy-github-comment-6073455911",
+      "event_type": "contacted",
+      "source": "github_public_buyer_request",
+      "offer": "Workflow Rescue Pilot",
+      "cost_idr": 0,
+      "occurred_at": "2026-10-09T03:10:03Z"
+    },
+    {
+      "event_id": "legacy-github-comment-6073456380",
+      "event_type": "contacted",
+      "source": "github_public_buyer_request",
+      "offer": "Workflow Rescue Pilot",
+      "cost_idr": 0,
+      "occurred_at": "2026-10-09T03:10:05Z"
+    },
+    {
+      "event_id": "legacy-github-comment-6073579140",
+      "event_type": "contacted",
+      "source": "github_public_buyer_request",
+      "offer": "Workflow Rescue Pilot",
+      "cost_idr": 0,
+      "occurred_at": "2026-10-09T03:20:09Z"
+    },
+    {
+      "event_id": "legacy-github-comment-6073722130",
+      "event_type": "contacted",
+      "source": "github_public_buyer_request",
+      "offer": "Workflow Rescue Pilot",
+      "cost_idr": 0,
+      "occurred_at": "2026-10-09T03:33:16Z"
+    },
+    {
+      "event_id": "legacy-github-comment-6073722653",
+      "event_type": "contacted",
+      "source": "github_public_buyer_request",
+      "offer": "Workflow Rescue Pilot",
+      "cost_idr": 0,
+      "occurred_at": "2026-10-09T03:33:19Z"
+    },
+    {
+      "event_id": "legacy-github-comment-6073759326",
+      "event_type": "contacted",
+      "source": "github_public_buyer_request",
+      "offer": "Workflow Rescue Pilot",
+      "cost_idr": 0,
+      "occurred_at": "2026-10-09T03:37:04Z"
     }
   ]
 }
