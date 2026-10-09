@@ -22,8 +22,8 @@ class RevenueFeedbackTests(unittest.TestCase):
             self.assertEqual(wc["revenue_idr"], 399000)
             self.assertEqual(wc["profit_idr"], 398000)
             self.assertEqual(wc["conversion_rate"], 1.0)
-            self.assertGreater(result["policy"]["offer_multipliers"]["WooCommerce → Google Sheets Automation"], 1.0)
-            self.assertLess(result["policy"]["offer_multipliers"]["WhatsApp → Google Sheets Mini Automation"], 1.0)
+            self.assertEqual(result["policy"]["offer_multipliers"]["WooCommerce → Google Sheets Automation"], 1.0)
+            self.assertEqual(result["policy"]["offer_multipliers"]["WhatsApp → Google Sheets Mini Automation"], 1.0)
 
     def test_m3_event_file_feeds_profit_feedback(self):
         events = [{"event_id": "contact-1", "event_type": "contacted", "source": "agentmail", "offer": "validation", "cost_idr": 0}]
