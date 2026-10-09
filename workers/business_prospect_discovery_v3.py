@@ -16,6 +16,20 @@ UA = "KikikJourney-BusinessProspector/2.2"
 MAX_PER_DOMAIN = int(os.getenv("KJ_MAX_PROSPECTS_PER_DOMAIN", "4"))
 MAX_CANDIDATES_PER_QUERY = int(os.getenv("KJ_MAX_CANDIDATES_PER_QUERY", "24"))
 
+DIAGNOSTICS = {
+    "queries_attempted": 0,
+    "search_targets_attempted": 0,
+    "search_targets_with_content": 0,
+    "search_targets_failed_or_empty": 0,
+    "links_seen": 0,
+    "content_pages_read": 0,
+    "content_pages_empty": 0,
+    "pages_rejected_no_buyer_evidence": 0,
+    "pages_with_buyer_evidence": 0,
+    "direct_business_emails_found": 0,
+    "per_query": [],
+}
+
 QUERIES = [
     # Local business pain hypotheses; search public web sources, not only GitHub.
     '"UMKM" "pencatatan stok" manual WhatsApp usaha',
@@ -191,9 +205,15 @@ def search(query):
         "https://www.bing.com/search?q=" + quote_plus(query) + "&count=10",
     ])
     for target in targets:
+        DIAGNOSTICS["search_targets_attempted"] += 1
         body, _ = read(target)
+        if body:
+            DIAGNOSTICS["search_targets_with_content"] += 1
+        else:
+            DIAGNOSTICS["search_targets_failed_or_empty"] += 1
         links = re.findall(r'\[([^\]]+)\]\((https?://[^\s\)"]+)', body)
         links += [(u, u) for u in re.findall(r"https?://[^\s<>\]\)\"']+", body)]
+        DIAGNOSTICS["links_seen"] += len(links)
         for title, url in links:
             clean_url = normalize_url(url)
             if not clean_url:
@@ -289,7 +309,9 @@ def inspect(item, query):
     if not is_candidate_page(item):
         return None
     body, final = read(item["url"])
+    DIAGNOSTICS["content_pages_read"] += 1
     if not body:
+        DIAGNOSTICS["content_pages_empty"] += 1
         return None
 
     _, business_hits, pain_hits, intent_hits, offer_hits, offer, request_context = classify(item, body)
@@ -300,7 +322,9 @@ def inspect(item, query):
         or offer_hits < 1
         or business_hits < 1
     ):
+        DIAGNOSTICS["pages_rejected_no_buyer_evidence"] += 1
         return None
+    DIAGNOSTICS["pages_with_buyer_evidence"] += 1
 
     found = [e for e in emails(body) if is_business_email(e, final)]
     contact_url = ""
@@ -320,6 +344,8 @@ def inspect(item, query):
         )
 
     found = sorted(set(found))
+    if found:
+        DIAGNOSTICS["direct_business_emails_found"] += 1
     return {
         "source": "public_business_web_signal",
         "source_type": "public_business_web_signal",
@@ -359,18 +385,30 @@ def main():
     domain_counts = {}
     max_queries = int(os.getenv("KJ_MAX_DISCOVERY_QUERIES", "10"))
     for query in QUERIES[:max_queries]:
-        for item in search(query):
+        DIAGNOSTICS["queries_attempted"] += 1
+        candidates = search(query)
+        inspected = 0
+        matched = 0
+        for item in candidates:
             domain = urlparse(item["url"]).netloc.lower().removeprefix("www.")
             url_key = item["url"].rstrip("/").lower()
             if url_key in seen_urls or domain_counts.get(domain, 0) >= MAX_PER_DOMAIN:
                 continue
             seen_urls.add(url_key)
             domain_counts[domain] = domain_counts.get(domain, 0) + 1
+            inspected += 1
             hit = inspect(item, query)
             if hit:
                 prospects.append(hit)
+                matched += 1
             if len(prospects) >= LIMIT:
                 break
+        DIAGNOSTICS["per_query"].append({
+            "query": query,
+            "search_candidates": len(candidates),
+            "unique_pages_inspected": inspected,
+            "matching_prospects": matched,
+        })
         if len(prospects) >= LIMIT:
             break
 
@@ -381,11 +419,16 @@ def main():
         "actionable_count": sum(bool(x.get("actionable")) for x in prospects[:LIMIT]),
         "direct_email_count": sum(bool(x.get("contact_email")) for x in prospects[:LIMIT]),
         "prospects": prospects[:LIMIT],
+        "diagnostics": DIAGNOSTICS,
         "warning": "Public business signals are lead signals, not consent or sales. Outreach remains one-to-one, bounded and opt-out aware.",
     }
     with open("business_prospects.json", "w", encoding="utf-8") as handle:
         json.dump(payload, handle, ensure_ascii=False, indent=2)
-    print(json.dumps({"business_prospects": len(prospects)}))
+    print(json.dumps({
+        "business_prospects": len(prospects),
+        "actionable_count": payload["actionable_count"],
+        "diagnostics": DIAGNOSTICS,
+    }, ensure_ascii=False))
 
 
 if __name__ == "__main__":
