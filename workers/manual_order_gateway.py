@@ -169,8 +169,8 @@ def process_payment(mid,text,order=None):
     if prior_tx:
         prior_text = (prior_tx.get("title") or "") + "\n" + (prior_tx.get("body") or "")
         prior_ref = ref(prior_text)
-        if prior_ref and prior_ref != p_ref:
-            return {"status":"payment_rejected","ref":p_ref,"verification":{"ok":False,"status":"transaction_already_used","tx_hash":h,"existing_order_ref":prior_ref}}
+        if prior_ref != p_ref:
+            return {"status":"payment_rejected","ref":p_ref,"verification":{"ok":False,"status":"transaction_already_used","tx_hash":h,"existing_order_ref":prior_ref or "unknown"}}
     result=verify_payment(h,amount,PAYMENT_RECIPIENT)
     if not result.get("ok"):
         status=result.get("status")
