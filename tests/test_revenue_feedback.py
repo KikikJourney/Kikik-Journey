@@ -33,6 +33,27 @@ class RevenueFeedbackTests(unittest.TestCase):
         self.assertEqual(result["totals"]["paid_orders"], 1)
         self.assertEqual(result["totals"]["revenue_idr"], 19000)
 
+    def test_small_outreach_sample_keeps_policy_neutral(self):
+        events = [
+            {"event_id": f"contact-{i}", "event_type": "contacted",
+             "source": "new_channel", "offer": "new_offer", "cost_idr": 0}
+            for i in range(9)
+        ]
+        result = build_feedback(events)
+        self.assertEqual(result["policy"]["source_multipliers"]["new_channel"], 1.0)
+        self.assertEqual(result["policy"]["offer_multipliers"]["new_offer"], 1.0)
+        self.assertEqual(result["policy"]["min_contacts_for_feedback"], 20)
+
+    def test_feedback_activates_after_minimum_contact_sample(self):
+        events = [
+            {"event_id": f"contact-{i}", "event_type": "contacted",
+             "source": "tested_channel", "offer": "tested_offer", "cost_idr": 0}
+            for i in range(20)
+        ]
+        result = build_feedback(events)
+        self.assertEqual(result["policy"]["source_multipliers"]["tested_channel"], 0.7364)
+        self.assertEqual(result["policy"]["offer_multipliers"]["tested_offer"], 0.7364)
+
     def test_duplicate_event_ids_do_not_inflate_metrics(self):
         events = [
             {"event_id": "x", "event_type": "paid", "source": "s", "offer": "o", "amount_idr": 100, "cost_idr": 0},
