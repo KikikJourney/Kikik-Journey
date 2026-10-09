@@ -145,6 +145,7 @@ jobs:
         if: steps.candidate_gate.outputs.has_candidates != 'true'
         run: |
           printf '%s\n' '{"count":0,"qualified":0,"watch":0,"reject":0,"results":[]}' > worker_prospect_queue.json
+          : > worker.log
       - name: Validate qualification
         run: |
           python -m json.tool worker_prospect_queue.json >/dev/null
