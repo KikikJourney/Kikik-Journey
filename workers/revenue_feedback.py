@@ -115,8 +115,12 @@ def build_feedback(events):
     totals["paid_from_qualified_rate"] = round(totals["paid_orders"] / totals["qualified"], 4) if totals["qualified"] else 0.0
     totals["conversion_rate"] = round(totals["paid_orders"] / totals["contacted"], 4) if totals["contacted"] else 0.0
 
+    min_contacts_for_feedback = 20
+
     def multiplier(b):
-        if not b["contacted"]:
+        # Keep new channels/offers neutral until there is enough real outreach
+        # to avoid overreacting to tiny samples or contaminated legacy events.
+        if b["contacted"] < min_contacts_for_feedback:
             return 1.0
         # Bayesian smoothing prevents a single sale from dominating the policy.
         smoothed = (b["paid"] + 1) / (b["contacted"] + 2)
@@ -135,6 +139,7 @@ def build_feedback(events):
         "offer_multipliers": offer_multipliers,
         "source_multipliers": source_multipliers,
         "bounds": {"min": 0.75, "max": 1.50},
+        "min_contacts_for_feedback": min_contacts_for_feedback,
     }
     return {
         "generated_at": policy["generated_at"],
