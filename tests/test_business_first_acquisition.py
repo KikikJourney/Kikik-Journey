@@ -27,6 +27,22 @@ class BusinessFirstAcquisitionTests(unittest.TestCase):
         self.assertEqual(lead["status"], "QUALIFIED")
         self.assertFalse(lead["auto_contact_eligible"])
 
+    def test_community_guide_boilerplate_is_watch_not_buyer(self):
+        item = {
+            "title": "Start here",
+            "website": "https://community.make.com/t/make-community-the-ultimate-guide/11682",
+            "evidence": (
+                "Mastering the Make Community: Get Started. Help others help you. "
+                "Share knowledge, not sales pitches. Do not self-promote outside "
+                "the designated Hire a Pro areas. This is a space for learning."
+            ),
+            "score": 100,
+            "commercial_intent": 4,
+        }
+        lead = a.make_lead(item, "public_business_web_signal")
+        self.assertEqual(lead["status"], "WATCH")
+        self.assertFalse(lead["auto_contact_eligible"])
+
     def test_research_artifact_is_watch(self):
         item = {
             "title": "Automation research report",
