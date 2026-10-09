@@ -56,6 +56,14 @@ class GitHubOutreachTests(unittest.TestCase):
         self.assertIn("repo=acme/shop", url)
         self.assertIn("issue=7", url)
 
+    def test_contacted_event_is_stable_and_attributed(self):
+        first = go.contacted_event(self.lead(), "acme/shop", 7, "2026-10-09T00:00:00+00:00")
+        second = go.contacted_event(self.lead(), "acme/shop", 7, "2026-10-10T00:00:00+00:00")
+        self.assertEqual(first["event_id"], second["event_id"])
+        self.assertEqual(first["source"], "github_public_buyer_request")
+        self.assertEqual(first["offer"], "Workflow Rescue Pilot")
+        self.assertEqual(first["occurred_at"], "2026-10-09T00:00:00+00:00")
+
 
 if __name__ == "__main__":
     unittest.main()
