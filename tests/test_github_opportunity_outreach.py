@@ -117,6 +117,23 @@ class GitHubOutreachTests(unittest.TestCase):
             }]
         }
         self.assertEqual(go.search_buyer_requests(), [])
+        self.assertEqual(
+            go.SEARCH_DIAGNOSTICS["commercial_gate_rejection_reasons"],
+            {"missing_positive_commercial_intent": 1},
+        )
+        self.assertEqual(
+            go.SEARCH_DIAGNOSTICS["commercial_gate_rejected_samples"][0]["title"],
+            "Need help fixing automation workflow",
+        )
+
+    def test_commercial_gate_reason_explains_technical_only_request(self):
+        self.assertEqual(
+            go.commercial_request_gate_reason(
+                "Need help fixing automation workflow",
+                "We need a developer because our workflow is failing.",
+            ),
+            "missing_positive_commercial_intent",
+        )
 
     def test_commercial_gate_rejects_aggregated_digest_with_negated_quotes(self):
         title = "Leads — 2026-10-07 (2)"
