@@ -30,16 +30,24 @@ MARKER = "<!-- kikik-journey-github-outreach:v2 -->"
 INTENT = ("need help", "need someone", "looking for", "need a developer", "hire",
           "hiring", "paid help", "who can build", "who can fix", "help me automate",
           "need this built", "need this fixed", "seeking", "can someone", "recommend a developer")
+COMMERCIAL_INTENT = (
+    "looking to hire", "hire a developer", "hire someone", "hiring a developer",
+    "freelancer wanted", "contractor wanted", "paid help", "paid project",
+    "paid engagement", "looking for a freelancer", "looking for a contractor",
+    "need a freelancer", "need a contractor", "request for proposal", "request a quote",
+    "quote for", "pay someone to", "hire an agency", "seeking a freelancer",
+    "seeking a contractor", "budget for a freelancer", "budget for a developer",
+)
 PAIN = ("bug", "broken", "error", "failing", "manual", "automation", "workflow",
         "integration", "inventory", "orders", "deployment", "ci", "api", "slow", "maintenance")
 
 BUYER_QUERIES = (
-    '"looking for" automation',
-    '"need help" automation',
-    '"need a developer" automation',
-    '"looking for" "google sheets" integration',
-    '"woocommerce" "google sheets" automation',
-    '"whatsapp" automation "google sheets"',
+    '"looking to hire" automation',
+    '"freelancer wanted" automation',
+    '"paid help" "google sheets" integration',
+    '"request a quote" WooCommerce automation',
+    '"need a contractor" automation workflow',
+    '"hire a developer" "Google Sheets"',
 )
 MAX_DISCOVERY = int(os.getenv("KJ_GITHUB_MAX_DISCOVERY_CANDIDATES", "25"))
 
@@ -88,7 +96,8 @@ def search_buyer_requests():
         low = f"{title} {body}".lower()
         intent_hits = sum(x in low for x in INTENT)
         pain_hits = sum(x in low for x in PAIN)
-        if intent_hits < 1 or pain_hits < 1:
+        commercial_hits = sum(x in low for x in COMMERCIAL_INTENT)
+        if intent_hits < 1 or pain_hits < 1 or commercial_hits < 1:
             continue
         offer = match_offer(low)
         candidates.append({
@@ -100,7 +109,7 @@ def search_buyer_requests():
             "matched_offer": offer,
             "checkout_path": checkout_path_for_offer(offer),
             "priority_score": min(100, 45 + intent_hits * 12 + pain_hits * 5),
-            "commercial_intent": intent_hits,
+            "commercial_intent": commercial_hits,
             "updated_at": item.get("updated_at"),
         })
     candidates.sort(key=lambda x: x["priority_score"], reverse=True)
@@ -166,17 +175,28 @@ def checkout_url(lead, repo, issue):
 
 
 def already_contacted(repo, number):
-    response = api(f"https://api.github.com/repos/{repo}/issues/{number}/comments?per_page=100")
-    comments = response if isinstance(response, list) else response.get("comments", [])
-    return any(MARKER in (comment.get("body") or "") for comment in comments)
+    # Search all comment pages: checking only page 1 misses markers on busy issues
+    # and can cause repeated outreach. Fail closed if the history is unusually large.
+    for page in range(1, 21):
+        response = api(
+            f"https://api.github.com/repos/{repo}/issues/{number}/comments?per_page=100&page={page}"
+        )
+        comments = response if isinstance(response, list) else response.get("comments", [])
+        if any(MARKER in (comment.get("body") or "") for comment in comments):
+            return True
+        if len(comments) < 100:
+            return False
+    return "history_check_failed"
 
 
 def eligible(lead):
+    text = f"{lead.get('title', '')} {lead.get('evidence', '')}".lower()
     return (lead.get("status") == "QUALIFIED"
             and lead.get("source") == "public_buyer_request"
             and issue_ref(lead.get("url")) is not None
             and bool(lead.get("matched_offer"))
-            and bool(lead.get("checkout_path")))
+            and bool(lead.get("checkout_path"))
+            and any(term in text for term in COMMERCIAL_INTENT))
 
 
 def contacted_event(lead, repo, issue, occurred_at=None):
@@ -240,9 +260,36 @@ def main():
             elif final < MIN_SCORE:
                 report["skipped"]["low_score"] = report["skipped"].get("low_score", 0) + 1
                 attempt["status"] = "skipped_low_score"
-            elif already_contacted(repo, issue):
-                report["skipped"]["already_contacted"] = report["skipped"].get("already_contacted", 0) + 1
-                attempt["status"] = "already_contacted"
+            else:
+                history = already_contacted(repo, issue)
+                if history == "history_check_failed":
+                    report["skipped"]["history_check_failed"] = report["skipped"].get("history_check_failed", 0) + 1
+                    attempt["status"] = "skipped_history_check_failed"
+                elif history:
+                    report["skipped"]["already_contacted"] = report["skipped"].get("already_contacted", 0) + 1
+                    attempt["status"] = "already_contacted"
+                elif not TOKEN:
+                    report["skipped"]["missing_write_token"] = report["skipped"].get("missing_write_token", 0) + 1
+                    attempt["status"] = "skipped_missing_write_token"
+                else:
+                    api(f"https://api.github.com/repos/{repo}/issues/{issue}/comments", "POST",
+                        {"body": comment_body(lead, checkout_url(lead, repo, issue))})
+                    report["contacted"] += 1
+                    report["contacted_leads"].append(contacted_event(lead, repo, issue))
+                    attempt["status"] = "contacted"
+            report["eligible"] += 1
+            report["attempts"].append(attempt)
+        except Exception as exc:
+            report["skipped"]["error"] = report["skipped"].get("error", 0) + 1
+            report["attempts"].append({"repo": repo, "issue": issue, "status": f"error:{type(exc).__name__}"})
+    with open(args.report, "w", encoding="utf-8") as h:
+        json.dump(report, h, indent=2)
+    print(json.dumps(report, indent=2))
+
+
+if __name__ == "__main__":
+    main()
+
             elif not TOKEN:
                 report["skipped"]["missing_write_token"] = report["skipped"].get("missing_write_token", 0) + 1
                 attempt["status"] = "skipped_missing_write_token"
