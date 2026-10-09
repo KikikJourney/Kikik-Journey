@@ -48,5 +48,14 @@ class BusinessProspectDiscoveryV3Tests(unittest.TestCase):
         self.assertIn("https://example.org/request-2", urls)
 
 
+    def test_first_ten_queries_include_indonesian_small_business_pain(self):
+        first_pass = " ".join(discovery.QUERIES[:10]).lower()
+        self.assertIn("umkm", first_pass)
+        self.assertIn("toko online", first_pass)
+        self.assertIn("pencatatan stok", first_pass)
+        self.assertIn("community.make.com", first_pass)
+
+
+
 if __name__ == "__main__":
     unittest.main()
