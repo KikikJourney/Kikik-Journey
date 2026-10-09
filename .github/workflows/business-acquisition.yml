@@ -95,9 +95,29 @@ jobs:
         with:
           name: business-acquisition-queue
           path: input
+      - name: Check actionable business candidates
+        id: candidate_gate
+        run: |
+          python - <<'PY'
+          import json, os
+          with open("input/customer_leads.json", encoding="utf-8") as handle:
+              payload = json.load(handle)
+          candidates = [
+              lead for lead in payload.get("leads", [])
+              if lead.get("status") == "QUALIFIED"
+              and lead.get("actionable") is True
+              and lead.get("contact_email")
+              and lead.get("website")
+          ]
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"has_candidates={'true' if candidates else 'false'}\n")
+          print(f"Actionable business candidates: {len(candidates)}")
+          PY
       - name: Install llama.cpp
+        if: steps.candidate_gate.outputs.has_candidates == 'true'
         run: curl -LsSf https://llama.app/install.sh | sh
       - name: Start Qwen worker
+        if: steps.candidate_gate.outputs.has_candidates == 'true'
         run: |
           nohup llama serve -hf ggml-org/Qwen3-1.7B-GGUF:Q4_K_M --host 127.0.0.1 --port 8080 > worker.log 2>&1 &
           ready=0
@@ -114,9 +134,17 @@ jobs:
             exit 1
           fi
           echo "Qwen worker ready."
-      - name: Qualify top business prospects
+      - name: Qualify actionable business prospects
+        if: steps.candidate_gate.outputs.has_candidates == 'true'
         run: |
-          python workers/batch_prospect_worker.py             --input input/business_first_report.json             --output worker_prospect_queue.json             --limit 3
+          python workers/batch_prospect_worker.py \
+            --input input/customer_leads.json \
+            --output worker_prospect_queue.json \
+            --limit 3
+      - name: Write empty qualification queue when no actionable candidates
+        if: steps.candidate_gate.outputs.has_candidates != 'true'
+        run: |
+          printf '%s\n' '{"count":0,"qualified":0,"watch":0,"reject":0,"results":[]}' > worker_prospect_queue.json
       - name: Validate qualification
         run: |
           python -m json.tool worker_prospect_queue.json >/dev/null
