@@ -2,7 +2,7 @@ import base64
 import json
 import os
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -44,12 +44,33 @@ BUYER_SIGNALS = {
 # popularity, issue volume, or technical pain. It is evidence of a request,
 # not proof that the author has budget or authority to buy.
 BUYER_INTENT_PHRASES = (
-    "need help", "looking for", "need a developer", "need someone",
-    "hire", "hiring", "paid help", "who can build", "who can fix",
-    "help me automate", "looking to automate", "want to automate",
-    "need this built", "need this fixed", "seeking", "can someone",
-    "recommend a developer", "request a quote", "budget", "freelance",
-    "contractor", "looking to hire", "willing to pay",
+    "need help", "looking for a developer", "looking for a freelancer",
+    "looking for someone to", "need a developer", "need someone to",
+    "hire a developer", "hiring a developer", "looking to hire",
+    "freelancer wanted", "contractor wanted", "paid help", "paid project",
+    "who can build", "who can fix", "help me automate", "looking to automate",
+    "want to automate", "need this built", "need this fixed",
+    "seeking a freelancer", "seeking a contractor", "recommend a developer",
+    "request a quote", "pay someone to", "willing to pay",
+)
+BUYER_COMMERCIAL_PHRASES = (
+    "looking to hire", "hire a developer", "hire someone", "hiring a developer",
+    "freelancer wanted", "contractor wanted", "paid help", "paid project",
+    "paid engagement", "looking for a freelancer", "looking for a contractor",
+    "need a freelancer", "need a contractor", "request for proposal",
+    "request a quote", "quote for", "pay someone to", "willing to pay",
+    "budget for a freelancer", "budget for a developer",
+)
+NEGATED_BUYER_PHRASES = (
+    "not looking to hire", "not looking for a developer",
+    "not looking for a freelancer", "not a paid project",
+    "not looking for paid work", "no budget for a developer",
+)
+NON_BUYER_ARTIFACTS = (
+    "market & tech review", "research report", "scheduled agent:",
+    "leads from ", "why it matched", "status update", "technical co-founder",
+    "business partner", "best development company", "our services",
+    "we provide", "directory", "roadmap",
 )
 BUYER_PAIN_PHRASES = (
     "manual", "manually", "broken", "failing", "error", "time-consuming",
@@ -117,10 +138,11 @@ def fetch_issues(full_name):
 def search_buyer_requests():
     found = {}
     failures = []
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=LOOKBACK_DAYS)).date().isoformat()
     for query in BUYER_QUERIES:
         try:
             payload = api("/search/issues", {
-                "q": query + " type:issue",
+                "q": query + f" type:issue is:open updated:>={cutoff}",
                 "sort": "updated",
                 "order": "desc",
                 "per_page": 15,
@@ -138,8 +160,13 @@ def search_buyer_requests():
         body = item.get("body") or ""
         text = f"{title} {body}".strip()
         lowered = text.lower()
-        intent_matches = [phrase for phrase in BUYER_INTENT_PHRASES if phrase in lowered]
-        pain_matches = [phrase for phrase in BUYER_PAIN_PHRASES if phrase in lowered]
+        # Classification uses the title and opening, not buried boilerplate.
+        buyer_context = f"{title} {body[:1200]}".lower()
+        intent_matches = [phrase for phrase in BUYER_INTENT_PHRASES if phrase in buyer_context]
+        commercial_matches = [phrase for phrase in BUYER_COMMERCIAL_PHRASES if phrase in buyer_context]
+        pain_matches = [phrase for phrase in BUYER_PAIN_PHRASES if phrase in buyer_context]
+        negated = any(phrase in lowered for phrase in NEGATED_BUYER_PHRASES)
+        artifact = any(phrase in f"{title} {body[:1200]}".lower() for phrase in NON_BUYER_ARTIFACTS)
         score = min(
             100,
             keyword_score(text, PAIN) * 1.5
@@ -154,10 +181,14 @@ def search_buyer_requests():
             age_days = max(0, (now - updated).days)
         except (AttributeError, ValueError):
             age_days = None
-        # An issue becomes a qualified demand signal only when the source text
-        # contains both an explicit request and concrete problem language.
-        # Recent activity helps ordering but never substitutes for intent.
-        demand_status = "QUALIFIED_REQUEST" if intent_matches and pain_matches else "WATCH"
+        # A qualified demand signal requires explicit request language, a
+        # commercial/paid-intent phrase, and concrete pain near the opening.
+        # Negations and known research/SEO/status artifacts never qualify.
+        demand_status = (
+            "QUALIFIED_REQUEST"
+            if intent_matches and commercial_matches and pain_matches and not negated and not artifact
+            else "WATCH"
+        )
         if age_days is not None and age_days > LOOKBACK_DAYS:
             demand_status = "STALE"
         requests.append({
@@ -169,8 +200,9 @@ def search_buyer_requests():
             "score": round(score, 2),
             "demand_status": demand_status,
             "intent_evidence": intent_matches[:8],
+            "commercial_evidence": commercial_matches[:8],
             "pain_evidence": pain_matches[:8],
-            "commercial_intent": len(intent_matches),
+            "commercial_intent": len(commercial_matches),
             "evidence": text[:1000],
             "validation_action": (
                 "Confirm the issue author still needs the outcome and can approve a paid scope; ask one specific question before pitching."
