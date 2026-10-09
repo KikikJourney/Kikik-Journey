@@ -70,6 +70,44 @@ def build_item(candidate, rank):
         "issue_evidence": candidate["evidence"].get("recent_issue_samples", [])[:3],
     }
 
+def build_demand_item(request, rank):
+    """Turn an explicit public request into a validation task, not a claimed sale."""
+    text = f"{request.get('title', '')} {request.get('evidence', '')}".lower()
+    if "woocommerce" in text and "google sheets" in text:
+        offer = "WooCommerce → Google Sheets Automation"
+        price_idr = 399000
+        scope = "One WooCommerce store + one Google Sheet workflow + agreed fields."
+    elif "whatsapp" in text and "google sheets" in text:
+        offer = "WhatsApp → Google Sheets Mini Automation"
+        price_idr = 199000
+        scope = "One message format + one Google Sheet workflow."
+    else:
+        offer = "Workflow Rescue Pilot"
+        price_idr = 250000
+        scope = "One workflow audit + implementation/prototype or documented automation path."
+    return {
+        "rank": rank,
+        "status": request.get("demand_status", "WATCH"),
+        "title": request.get("title", ""),
+        "url": request.get("url", ""),
+        "repository": request.get("repository", ""),
+        "updated_at": request.get("updated_at"),
+        "age_days": request.get("age_days"),
+        "score": request.get("score", 0),
+        "intent_evidence": request.get("intent_evidence", []),
+        "pain_evidence": request.get("pain_evidence", []),
+        "evidence": request.get("evidence", "")[:1000],
+        "matched_offer": offer,
+        "price_idr": price_idr,
+        "scope": scope,
+        "next_step": (
+            "Confirm the request is still active and ask whether the author can approve this fixed scope and price. Do not treat the public issue as consent or a sale."
+            if request.get("demand_status") == "QUALIFIED_REQUEST"
+            else "Watch only; do not pitch until explicit buyer intent and a concrete pain are present."
+        ),
+    }
+
+
 def main():
     with open(INPUT, encoding="utf-8") as handle:
         report = json.load(handle)
@@ -78,13 +116,28 @@ def main():
         raise RuntimeError("No candidates available for packaging.")
 
     queue = [build_item(candidate, idx) for idx, candidate in enumerate(candidates[:7], start=1)]
+    buyer_requests = report.get("buyer_requests", [])
+    demand_queue = [
+        build_demand_item(request, idx)
+        for idx, request in enumerate(
+            [x for x in buyer_requests if x.get("demand_status") == "QUALIFIED_REQUEST"][:10],
+            start=1,
+        )
+    ]
     output = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "source_generated_at": report.get("generated_at"),
         "method": "Convert ranked opportunity evidence into bounded revenue experiments.",
         "warning": "Prices are test hypotheses, not market facts or guaranteed revenue.",
         "queue": queue,
-        "operating_rule": "Validate payment intent before investing in a larger product.",
+        "demand_queue": demand_queue,
+        "demand_summary": {
+            "qualified_request_signals": len(demand_queue),
+            "watch_signals": sum(x.get("demand_status") == "WATCH" for x in buyer_requests),
+            "stale_signals": sum(x.get("demand_status") == "STALE" for x in buyer_requests),
+            "note": "Qualified request signals require explicit intent plus concrete pain; they are not verified buyers, consent, or revenue.",
+        },
+        "operating_rule": "Prioritize explicit buyer-request evidence over repository popularity; validate willingness to pay before building.",
     }
     with open(QUEUE, "w", encoding="utf-8") as handle:
         json.dump(output, handle, indent=2, ensure_ascii=False)
@@ -93,7 +146,23 @@ def main():
         "# Revenue Validation Queue", "",
         f"Generated: {output['generated_at']}", "",
         "> Prices are test hypotheses, not guaranteed market prices. License status must be checked before reuse or redistribution.", "",
+        "## Explicit buyer-request validation queue", "",
+        f"- Qualified request signals: **{len(demand_queue)}**",
+        "- A qualified request is evidence of a stated problem and request language, not proof of budget, authority, or a sale.", "",
     ]
+    for item in demand_queue:
+        lines.extend([
+            f"### Demand #{item['rank']} — {item['title']}",
+            f"- Status: **{item['status']}**",
+            f"- Source: {item['url']}",
+            f"- Updated: {item.get('updated_at') or 'unknown'} (age days: {item.get('age_days')})",
+            f"- Evidence score: **{item['score']}**",
+            f"- Intent evidence: {', '.join(item['intent_evidence']) or 'none'}",
+            f"- Pain evidence: {', '.join(item['pain_evidence']) or 'none'}",
+            f"- Offer hypothesis: **{item['matched_offer']} — Rp{item['price_idr']:,}**".replace(",", "."),
+            f"- Scope: {item['scope']}",
+            f"- Next step: {item['next_step']}", "",
+        ])
     for item in queue:
         lines.extend([
             f"## #{item['rank']} — {item['repository']}",
