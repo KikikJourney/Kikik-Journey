@@ -38,6 +38,36 @@ COMMERCIAL_INTENT = (
     "quote for", "pay someone to", "hire an agency", "seeking a freelancer",
     "seeking a contractor", "budget for a freelancer", "budget for a developer",
 )
+NEGATED_BUYER_INTENT = (
+    "not looking to hire", "not looking for a developer", "not looking for a freelancer",
+    "not looking to hire a developer", "not seeking a freelancer", "not seeking a contractor",
+    "not a paid project", "not looking for paid work", "no budget for a developer",
+)
+NON_BUYER_ARTIFACTS = (
+    "why it matched", "freelance leads", "leads from ", "reddit:",
+    "why choose", "benefits of", "best angularjs development company",
+    "best development company", "trusted provider", "digital transformation",
+    "our services", "we provide", "i am selling", "we are selling",
+    "offering an existing", "technical co-founder", "business partner",
+)
+
+
+def commercial_request_gate(title, body):
+    """Require positive paid-buyer intent in the title/opening, not buried SEO or quoted text."""
+    title_text = (title or "").lower().strip()
+    opening = (body or "")[:1200].lower()
+    context = f"{title_text} {opening}"
+    full_text = f"{title_text} {body or ''}".lower()
+    if any(term in full_text for term in NEGATED_BUYER_INTENT):
+        return False
+    if any(term in full_text for term in NON_BUYER_ARTIFACTS):
+        return False
+    if not any(term in context for term in COMMERCIAL_INTENT):
+        return False
+    return (
+        any(term in context for term in INTENT)
+        and any(term in context for term in PAIN)
+    )
 PAIN = ("bug", "broken", "error", "failing", "manual", "automation", "workflow",
         "integration", "inventory", "orders", "deployment", "ci", "api", "slow", "maintenance")
 
@@ -94,11 +124,13 @@ def search_buyer_requests():
         title = item.get("title") or ""
         body = item.get("body") or ""
         low = f"{title} {body}".lower()
-        intent_hits = sum(x in low for x in INTENT)
-        pain_hits = sum(x in low for x in PAIN)
-        commercial_hits = sum(x in low for x in COMMERCIAL_INTENT)
-        if intent_hits < 1 or pain_hits < 1 or commercial_hits < 1:
+        # The title and opening paragraph must state an actual paid request.
+        # Do not infer intent from quoted Reddit posts, SEO copy, or unrelated later text.
+        if not commercial_request_gate(title, body):
             continue
+        intent_hits = sum(x in f"{title} {body[:1200]}".lower() for x in INTENT)
+        pain_hits = sum(x in f"{title} {body[:1200]}".lower() for x in PAIN)
+        commercial_hits = sum(x in f"{title} {body[:1200]}".lower() for x in COMMERCIAL_INTENT)
         offer = match_offer(low)
         candidates.append({
             "status": "QUALIFIED",
@@ -175,11 +207,13 @@ def checkout_url(lead, repo, issue):
 
 
 def already_contacted(repo, number):
-    # Search all comment pages: checking only page 1 misses markers on busy issues
-    # and can cause repeated outreach. Fail closed if the history is unusually large.
+    # The campaign began on 2026-10-09. Filter older comments out first, then
+    # scan recent pages; busy issues may have thousands of historical comments.
+    since = os.getenv("KJ_GITHUB_OUTREACH_HISTORY_SINCE", "2026-10-09T00:00:00Z")
     for page in range(1, 21):
+        query = urlencode({"since": since, "per_page": 100, "page": page})
         response = api(
-            f"https://api.github.com/repos/{repo}/issues/{number}/comments?per_page=100&page={page}"
+            f"https://api.github.com/repos/{repo}/issues/{number}/comments?{query}"
         )
         comments = response if isinstance(response, list) else response.get("comments", [])
         if any(MARKER in (comment.get("body") or "") for comment in comments):
@@ -190,13 +224,12 @@ def already_contacted(repo, number):
 
 
 def eligible(lead):
-    text = f"{lead.get('title', '')} {lead.get('evidence', '')}".lower()
     return (lead.get("status") == "QUALIFIED"
             and lead.get("source") == "public_buyer_request"
             and issue_ref(lead.get("url")) is not None
             and bool(lead.get("matched_offer"))
             and bool(lead.get("checkout_path"))
-            and any(term in text for term in COMMERCIAL_INTENT))
+            and commercial_request_gate(lead.get("title", ""), lead.get("evidence", "")))
 
 
 def contacted_event(lead, repo, issue, occurred_at=None):
