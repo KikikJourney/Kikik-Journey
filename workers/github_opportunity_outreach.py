@@ -52,22 +52,28 @@ NON_BUYER_ARTIFACTS = (
 )
 
 
-def commercial_request_gate(title, body):
-    """Require positive paid-buyer intent in the title/opening, not buried SEO or quoted text."""
+def commercial_request_gate_reason(title, body):
+    """Explain why a public issue does or does not meet the strict paid-buyer gate."""
     title_text = (title or "").lower().strip()
     opening = (body or "")[:1200].lower()
     context = f"{title_text} {opening}"
     full_text = f"{title_text} {body or ''}".lower()
     if any(term in full_text for term in NEGATED_BUYER_INTENT):
-        return False
+        return "negated_buyer_intent"
     if any(term in full_text for term in NON_BUYER_ARTIFACTS):
-        return False
+        return "non_buyer_artifact"
     if not any(term in context for term in COMMERCIAL_INTENT):
-        return False
-    return (
-        any(term in context for term in INTENT)
-        and any(term in context for term in PAIN)
-    )
+        return "missing_positive_commercial_intent"
+    if not any(term in context for term in INTENT):
+        return "missing_explicit_request"
+    if not any(term in context for term in PAIN):
+        return "missing_concrete_pain"
+    return "qualified"
+
+
+def commercial_request_gate(title, body):
+    """Boolean compatibility wrapper for the strict commercial-intent gate."""
+    return commercial_request_gate_reason(title, body) == "qualified"
 PAIN = ("bug", "broken", "error", "failing", "manual", "automation", "workflow",
         "integration", "inventory", "orders", "deployment", "ci", "api", "slow", "maintenance")
 
@@ -117,6 +123,8 @@ def search_buyer_requests():
         "raw_hits": 0,
         "unique_requests": 0,
         "commercial_gate_rejected": 0,
+        "commercial_gate_rejection_reasons": {},
+        "commercial_gate_rejected_samples": [],
         "qualified_requests": 0,
         "query_failures": 0,
         "per_query": [],
@@ -156,8 +164,17 @@ def search_buyer_requests():
         low = f"{title} {body}".lower()
         # The title and opening paragraph must state an actual paid request.
         # Do not infer intent from quoted Reddit posts, SEO copy, or unrelated later text.
-        if not commercial_request_gate(title, body):
+        rejection_reason = commercial_request_gate_reason(title, body)
+        if rejection_reason != "qualified":
             diagnostics["commercial_gate_rejected"] += 1
+            reasons = diagnostics["commercial_gate_rejection_reasons"]
+            reasons[rejection_reason] = reasons.get(rejection_reason, 0) + 1
+            if len(diagnostics["commercial_gate_rejected_samples"]) < 12:
+                diagnostics["commercial_gate_rejected_samples"].append({
+                    "title": title[:180],
+                    "url": item.get("html_url"),
+                    "reason": rejection_reason,
+                })
             continue
         intent_hits = sum(x in f"{title} {body[:1200]}".lower() for x in INTENT)
         pain_hits = sum(x in f"{title} {body[:1200]}".lower() for x in PAIN)
