@@ -1,15 +1,18 @@
 {
   "version": 1,
-  "generated_at": "2026-10-09T03:52:12.677205+00:00",
+  "generated_at": "2026-10-09T04:21:12.825301+00:00",
   "principle": "Outcome data changes prioritization; it never bypasses buyer-intent, compliance, Qwen, deduplication, or outreach caps.",
   "offer_multipliers": {
-    "Workflow Rescue Pilot": 0.7727
+    "Workflow Rescue Pilot": 1.0
   },
   "source_multipliers": {
-    "github_public_buyer_request": 0.7727
+    "github_public_buyer_request": 1.0
   },
   "bounds": {
     "min": 0.75,
     "max": 1.5
-  }
+  },
+  "min_contacts_for_feedback": 20,
+  "prior_paid_conversion_rate": 0.05,
+  "prior_contact_equivalent": 20
 }
