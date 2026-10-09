@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - "workers/**"
+      - "workers/prospect_worker.py"
+      - "workers/prospect_worker_input.example.json"
       - "tests/test_prospect_worker.py"
-      - ".github/workflows/prospect-worker.yml"
 
 jobs:
   contract:
