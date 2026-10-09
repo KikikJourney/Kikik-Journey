@@ -134,6 +134,8 @@ class BusinessProspectDiscoveryV3Tests(unittest.TestCase):
                 os.chdir(old_cwd)
 
     def test_community_guideline_boilerplate_is_not_buyer_evidence(self):
+        import json
+
         body = (
             "Title: Mastering the Make Community: Get Started. "
             "Our mission is to build a safe, productive, and welcoming space. "
@@ -141,16 +143,21 @@ class BusinessProspectDiscoveryV3Tests(unittest.TestCase):
             "Do not self-promote outside the designated Hire a Pro areas. "
             "This is a space for learning, not a marketplace."
         )
-        with patch.object(
-            discovery, "read",
-            return_value=(body, "https://community.make.com/t/make-community-the-ultimate-guide/11682"),
-        ):
-            result = discovery.inspect({
-                "title": "Start here",
-                "url": "https://community.make.com/t/make-community-the-ultimate-guide/11682",
-            }, "community guide query")
-        self.assertIsNone(result)
-        self.assertGreaterEqual(discovery.DIAGNOSTICS["reject_no_intent"], 1)
+        old_diag = json.loads(json.dumps(discovery.DIAGNOSTICS))
+        discovery.DIAGNOSTICS["reject_no_intent"] = 0
+        try:
+            with patch.object(
+                discovery, "read",
+                return_value=(body, "https://community.make.com/t/make-community-the-ultimate-guide/11682"),
+            ):
+                result = discovery.inspect({
+                    "title": "Start here",
+                    "url": "https://community.make.com/t/make-community-the-ultimate-guide/11682",
+                }, "community guide query")
+            self.assertIsNone(result)
+            self.assertGreaterEqual(discovery.DIAGNOSTICS["reject_no_intent"], 1)
+        finally:
+            discovery.DIAGNOSTICS.update(old_diag)
 
     def test_rejects_generic_help_and_login_pages(self):
         self.assertFalse(discovery.is_candidate_page({
