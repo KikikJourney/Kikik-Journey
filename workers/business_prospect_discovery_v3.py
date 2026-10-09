@@ -31,6 +31,8 @@ DIAGNOSTICS = {
     "reject_no_offer_fit": 0,
     "reject_no_business_context": 0,
     "pages_with_buyer_evidence": 0,
+    "pages_with_relevance_evidence": 0,
+    "pages_watch_only": 0,
     "direct_business_emails_found": 0,
     "per_query": [],
 }
@@ -96,6 +98,10 @@ INTENT = (
     "need this fixed", "seeking a freelancer", "seeking a contractor",
     "recommend a developer", "request a quote", "pay someone to",
     "willing to pay",
+    "butuh bantuan", "perlu bantuan", "mencari developer", "mencari freelancer",
+    "membutuhkan developer", "membutuhkan freelancer", "sedang mencari",
+    "tolong buat", "tolong bantu", "ada yang bisa", "ingin mengotomatisasi",
+    "ingin otomatisasi", "jasa otomatisasi", "minta bantuan", "mencari jasa",
 )
 
 GENERIC_TITLES = {
@@ -333,17 +339,25 @@ def inspect(item, query):
     rejection_reasons = {
         "reject_no_request_context": not request_context,
         "reject_no_intent": intent_hits < 1,
-        "reject_no_pain": pain_hits < 1,
+        "reject_no_pain": pain_hits < 2,
         "reject_no_offer_fit": offer_hits < 1,
         "reject_no_business_context": business_hits < 1,
     }
-    if any(rejection_reasons.values()):
+    # Keep strongly relevant pages in a WATCH queue even when explicit purchase
+    # intent is absent. WATCH records must never enter autonomous outreach.
+    relevance_gate = business_hits >= 1 and pain_hits >= 2 and offer_hits >= 1
+    if not relevance_gate:
         DIAGNOSTICS["pages_rejected_no_buyer_evidence"] += 1
         for key, rejected in rejection_reasons.items():
             if rejected:
                 DIAGNOSTICS[key] += 1
         return None
-    DIAGNOSTICS["pages_with_buyer_evidence"] += 1
+    DIAGNOSTICS["pages_with_relevance_evidence"] += 1
+    qualified = intent_hits >= 1 and request_context
+    if qualified:
+        DIAGNOSTICS["pages_with_buyer_evidence"] += 1
+    else:
+        DIAGNOSTICS["pages_watch_only"] += 1
 
     found = [e for e in emails(body) if is_business_email(e, final)]
     contact_url = ""
@@ -388,11 +402,12 @@ def inspect(item, query):
         "reachability": "direct_email" if found else (
             "contact_form_or_contact_page" if contact_url else "unresolved"
         ),
-        "actionable": bool(found) and intent_hits >= 1 and pain_hits >= 1 and offer_hits >= 1,
+        "status": "QUALIFIED" if qualified else "WATCH",
+        "actionable": bool(found) and qualified and pain_hits >= 2 and offer_hits >= 1,
         "actionability_reason": (
             "direct public business email + explicit intent + pain + offer fit"
-            if found and intent_hits >= 1 and pain_hits >= 1 and offer_hits >= 1
-            else "missing direct email or explicit intent/pain/offer evidence"
+            if found and qualified and pain_hits >= 2 and offer_hits >= 1
+            else "watch-only or missing direct email / explicit intent / pain / offer evidence"
         ),
         "discovery_query": query,
     }
@@ -406,7 +421,7 @@ def main():
     # from the same community or business site.
     domain_counts = {}
     inspected_domain_counts = {}
-    max_inspections_per_domain = int(os.getenv("KJ_MAX_INSPECTIONS_PER_DOMAIN", "12"))
+    max_inspections_per_domain = int(os.getenv("KJ_MAX_INSPECTIONS_PER_DOMAIN", "36"))
     max_queries = int(os.getenv("KJ_MAX_DISCOVERY_QUERIES", "10"))
     for query in QUERIES[:max_queries]:
         DIAGNOSTICS["queries_attempted"] += 1
@@ -446,7 +461,7 @@ def main():
 
     payload = {
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "method": "Public buyer/request signals via Jina Reader plus public business contact enrichment; no credentials.",
+        "method": "Public business/request signals via Jina Reader plus public contact enrichment; strong pain-fit pages enter WATCH, and only explicit-intent pages can become actionable.",
         "count": len(prospects),
         "actionable_count": sum(bool(x.get("actionable")) for x in prospects[:LIMIT]),
         "direct_email_count": sum(bool(x.get("contact_email")) for x in prospects[:LIMIT]),
