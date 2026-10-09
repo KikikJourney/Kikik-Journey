@@ -314,7 +314,7 @@ def classify(item, body):
     offer_hits, offer = ranked[-1]
     windows = [
         part.strip().lower()
-        for part in re.split(r"[\\n.!?]+", (body or "")[:1800] + " " + item.get("title", ""))
+        for part in re.split(r"[\n.!?]+", (body or "")[:1800] + " " + item.get("title", ""))
         if part.strip()
     ]
     request_context = any(
