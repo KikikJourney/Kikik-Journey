@@ -310,13 +310,15 @@ def main():
             )
         report += "\n## Evidence from Gemini\n"
         report += "\n".join(f"- {item}" for item in result["evidence"]) or "- No additional evidence supplied."
-        if result.get("run", {}).get("conclusion") != "success" and result["action"] != "no_action":
+        if result.get("execution") == "blocked_by_recency_guard":
+            report += "\n\n## Integrity rule\nNo workflow was dispatched because a successful cycle is already recent.\n"
+        elif result.get("run", {}).get("conclusion") != "success" and result["action"] != "no_action":
             report += "\n\n## Required follow-up\nThe dispatched business cycle did not complete successfully. Inspect the linked run before claiming business execution succeeded.\n"
         else:
             report += "\n\n## Integrity rule\nA workflow run is not proof of a customer or paid order. Use verified acquisition and payment artifacts for business outcomes.\n"
         Path("api_agent_report.md").write_text(report + "\n", encoding="utf-8")
         print(report)
-        return 0 if result["action"] == "no_action" or result.get("run", {}).get("conclusion") == "success" else 1
+        return 0 if result["action"] == "no_action" or result.get("execution") == "blocked_by_recency_guard" or result.get("run", {}).get("conclusion") == "success" else 1
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", errors="replace")[:1200]
         print(f"Agent API returned HTTP {exc.code}: {detail}")
