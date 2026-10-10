@@ -12,6 +12,8 @@ on:
       - "workers/business_email_outreach.py"
       - "workers/github_opportunity_outreach.py"
       - "workers/revenue_feedback.py"
+      - "workers/gemini_business_intelligence.py"
+      - "tests/test_gemini_business_intelligence.py"
   workflow_dispatch:
     inputs:
       m1_run_id:
@@ -155,8 +157,28 @@ jobs:
       - name: Validate qualification
         run: |
           python -m json.tool worker_prospect_queue.json >/dev/null
-          python -m py_compile workers/prospect_worker.py workers/batch_prospect_worker.py
+          python -m py_compile workers/prospect_worker.py workers/batch_prospect_worker.py workers/gemini_business_intelligence.py
           python -m unittest tests/test_prospect_worker.py tests/test_batch_prospect_worker.py -v
+      - name: Build bounded M2 intelligence input
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          leads = json.loads(Path("input/customer_leads.json").read_text(encoding="utf-8"))
+          qwen = json.loads(Path("worker_prospect_queue.json").read_text(encoding="utf-8"))
+          Path("gemini_acquisition_input.json").write_text(json.dumps({"leads": leads.get("leads", []), "results": qwen.get("results", []), "count": qwen.get("count", 0), "qualified": qwen.get("qualified", 0), "watch": qwen.get("watch", 0), "reject": qwen.get("reject", 0)}, ensure_ascii=False), encoding="utf-8")
+          PY
+      - name: Gemini M2 acquisition intelligence
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+        run: python workers/gemini_business_intelligence.py --stage acquisition --input gemini_acquisition_input.json --output gemini_acquisition_review.json
+      - name: Upload Gemini acquisition review
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-acquisition-intelligence
+          path: gemini_acquisition_review.json
+
       - uses: actions/upload-artifact@v4
         with:
           name: business-qwen-qualification

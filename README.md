@@ -22,11 +22,23 @@ The repository is organized as a closed acquisition-to-profit loop. Generated ev
 
 ## One-click orchestration
 
-For a full manual operating cycle, use **`Zorathvael OS — Master Orchestrator`** in GitHub Actions. It is the single manual entry point and runs the milestones in order:
+For a full manual operating cycle, use **`Kikik Journey — Business Orchestrator`** in GitHub Actions. It is the single manual entry point and runs the milestones in order:
 
 `M1 DISCOVER → M2 QUALIFY/ACQUIRE → M3 PAYMENT/DELIVERY → M4 PROFIT FEEDBACK`
 
 The orchestrator dispatches the real M1, M2, and M3 workflows sequentially, passes the exact M1 artifact into M2, waits for each milestone to finish, and then waits for the M4 workflow triggered by the completed M3 run. Each milestone keeps its own Actions run, logs, artifacts, and validation. Scheduled workflows continue to operate independently.
+
+## AI division of labor
+
+Gemini is used as the higher-level business-intelligence layer across multiple stages, while Qwen remains the local second-pass prospect worker:
+
+- **Gemini execution agent:** decides whether to dispatch the allowlisted M1–M4 business cycle.
+- **M1 opportunity intelligence:** reviews the opportunity radar output and emits a separate, evidence-based review artifact.
+- **M2 acquisition intelligence:** reviews lead and Qwen qualification summaries, flags missing evidence, and recommends priorities. It cannot authorize outreach or override deterministic qualification gates.
+- **M4 profit intelligence:** interprets measured acquisition and revenue outcomes and recommends bounded experiments; it cannot fabricate revenue or silently change the deterministic profit policy.
+- **Qwen:** performs local second-pass prospect qualification using the GitHub Actions runner rather than the Gemini API.
+
+Gemini review artifacts are advisory and stored separately from source-of-truth business data. If `GEMINI_API_KEY` is absent or the API returns a quota/network/schema error, the relevant workflow records a skipped/degraded review and continues with deterministic safeguards and the Qwen path. The Gemini review does not become an automatic Qwen replacement or failover for the execution agent; that remains a separate, explicitly controlled capability.
 
 ## What the repository does
 
