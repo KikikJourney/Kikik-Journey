@@ -44,7 +44,7 @@ class BusinessProspectDiscoveryV3Tests(unittest.TestCase):
         with patch.object(discovery, "read", return_value=(body, "https://example.com")):
             results = discovery.search("test")
         urls = {item["url"] for item in results}
-        self.assertIn("https://example.com/request-1", urls)
+        self.assertIn("https://example.com/orders/request-1", urls)
         self.assertIn("https://example.org/request-2", urls)
 
 
