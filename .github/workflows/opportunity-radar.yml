@@ -60,10 +60,21 @@ jobs:
           python -m json.tool customer_leads.json >/dev/null
           python -m json.tool integrations/prospect_queue.json >/dev/null
           python -m json.tool integrations/prospect_queue.schema.json >/dev/null
-          python -m py_compile opportunity_radar.py opportunity_packager.py workers/business_prospect_discovery_v3.py workers/business_first_acquisition.py workers/business_email_outreach.py
+          python -m py_compile opportunity_radar.py opportunity_packager.py workers/business_prospect_discovery_v3.py workers/business_first_acquisition.py workers/business_email_outreach.py workers/gemini_business_intelligence.py
           python -m unittest discover -s tests -p "test_*.py" -v
           test -s validation_cards.md
           test -s customer_acquisition.md
+      - name: Gemini M1 opportunity intelligence
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+        run: python workers/gemini_business_intelligence.py --stage opportunity --input opportunity_report.json --output gemini_opportunity_review.json
+      - name: Upload Gemini opportunity review
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-opportunity-intelligence
+          path: gemini_opportunity_review.json
+
       - name: Upload opportunity report
         uses: actions/upload-artifact@v4
         with:
