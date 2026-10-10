@@ -12,7 +12,7 @@ class ApiAgentConfigTests(unittest.TestCase):
             normalize_api_key(" \n ")
 
     def test_model_defaults_when_variable_is_blank(self):
-        self.assertEqual(normalize_model(" \n "), "gemini-3.5-flash-lite")
+        self.assertEqual(normalize_model(" \n "), "gemini-2.5-flash-lite")
 
     def test_model_trims_whitespace(self):
         self.assertEqual(normalize_model("  gemini-test  "), "gemini-test")
