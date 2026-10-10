@@ -145,7 +145,7 @@ jobs:
 
       - name: Validate and build profit policy
         run: |
-          python -m py_compile workers/revenue_feedback.py workers/revenue_event_ledger.py workers/email_autopilot.py workers/business_first_acquisition.py
+          python -m py_compile workers/revenue_feedback.py workers/revenue_event_ledger.py workers/email_autopilot.py workers/business_first_acquisition.py workers/gemini_business_intelligence.py
           python -m unittest tests/test_revenue_feedback.py tests/test_revenue_event_ledger.py tests/test_email_autopilot.py tests/test_profit_policy_integration.py tests/test_business_first_acquisition.py -v
           python workers/revenue_feedback.py \
             --events data/revenue_events.json \
@@ -157,6 +157,17 @@ jobs:
           python -m json.tool data/revenue_events.json >/dev/null
           python -m json.tool data/profit_policy.json >/dev/null
           python -m json.tool profit_report.json >/dev/null
+
+      - name: Gemini M4 profit and growth intelligence
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+        run: python workers/gemini_business_intelligence.py --stage profit --input profit_report.json --output gemini_profit_review.json
+      - name: Upload Gemini profit intelligence
+        uses: actions/upload-artifact@v4
+        with:
+          name: gemini-profit-intelligence
+          path: gemini_profit_review.json
 
       - name: Commit feedback state
         run: |
