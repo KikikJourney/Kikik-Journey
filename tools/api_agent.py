@@ -28,7 +28,7 @@ def normalize_api_key(value):
     key = (value or "").strip()
     if not key:
         raise ValueError("Missing GEMINI_API_KEY repository secret.")
-    if "\\r" in key or "\\n" in key:
+    if "\r" in key or "\n" in key:
         raise ValueError("GEMINI_API_KEY contains invalid line breaks.")
     return key
 
@@ -43,7 +43,7 @@ def parse_decision(raw):
     if text.startswith("```"):
         lines = text.splitlines()
         if len(lines) >= 3 and lines[-1].strip() == "```":
-            text = "\\n".join(lines[1:-1]).strip()
+            text = "\n".join(lines[1:-1]).strip()
     try:
         decision = json.loads(text)
     except json.JSONDecodeError as exc:
@@ -81,7 +81,7 @@ def build_prompt(task, root=".", live_state=None, manual=False):
         path = root / name
         if path.is_file():
             context.append(
-                f"--- {name} ---\\n"
+                f"--- {name} ---\n"
                 + path.read_text(encoding="utf-8", errors="replace")[:4000]
             )
     task = (task or "").strip() or (
@@ -99,11 +99,11 @@ def build_prompt(task, root=".", live_state=None, manual=False):
         "feedback. Do not claim the cycle ran until the executor confirms a workflow run and result. "
         "Choose no_action if a successful full cycle occurred less than 24 hours ago, unless this "
         "is a manually requested task. Never invent customers, payments, or outcomes. Return ONLY "
-        'JSON: {"action":"run_full_business_cycle"|"no_action","reason":"...","evidence":["..."]}.\\n'
-        f"Manual dispatch: {str(bool(manual)).lower()}\\n"
-        f"Live workflow state: {json.dumps(live_state, ensure_ascii=False)}\\n"
-        f"Task: {task}\\nRepository context:\\n"
-        + "\\n\\n".join(context)
+        'JSON: {"action":"run_full_business_cycle"|"no_action","reason":"...","evidence":["..."]}.\n'
+        f"Manual dispatch: {str(bool(manual)).lower()}\n"
+        f"Live workflow state: {json.dumps(live_state, ensure_ascii=False)}\n"
+        f"Task: {task}\nRepository context:\n"
+        + "\n\n".join(context)
     )
 
 
@@ -139,7 +139,7 @@ def request_report(api_key, model, prompt):
     )
     with open_with_retry(request, timeout=90) as response:
         result = json.loads(response.read().decode("utf-8"))
-    answer = "\\n".join(
+    answer = "\n".join(
         part.get("text", "")
         for candidate in result.get("candidates", [])
         for part in candidate.get("content", {}).get("parts", [])
@@ -290,31 +290,31 @@ def main():
         decision = parse_decision(raw_decision)
         result = execute_decision(decision, token, repository, live_state, manual=manual)
         report = (
-            "# Kikik Journey Gemini Execution Agent\\n\\n"
-            f"- **Mode:** execution-capable; allowlisted GitHub workflow dispatch\\n"
-            f"- **Decision:** {result['action']}\\n"
-            f"- **Reason:** {result['reason']}\\n"
-            f"- **Execution:** {result['execution']}\\n"
+            "# Kikik Journey Gemini Execution Agent\n\n"
+            f"- **Mode:** execution-capable; allowlisted GitHub workflow dispatch\n"
+            f"- **Decision:** {result['action']}\n"
+            f"- **Reason:** {result['reason']}\n"
+            f"- **Execution:** {result['execution']}\n"
         )
         if result.get("detail"):
-            report += f"- **Detail:** {result['detail']}\\n"
+            report += f"- **Detail:** {result['detail']}\n"
         if result.get("workflow"):
-            report += f"- **Workflow:** `{result['workflow']}`\\n"
+            report += f"- **Workflow:** `{result['workflow']}`\n"
         if result.get("run"):
             run = result["run"]
             report += (
-                f"- **Run ID:** {run['run_id']}\\n"
-                f"- **Run status:** {run['status']}\\n"
-                f"- **Run conclusion:** {run['conclusion']}\\n"
-                f"- **Run URL:** {run['url']}\\n"
+                f"- **Run ID:** {run['run_id']}\n"
+                f"- **Run status:** {run['status']}\n"
+                f"- **Run conclusion:** {run['conclusion']}\n"
+                f"- **Run URL:** {run['url']}\n"
             )
-        report += "\\n## Evidence from Gemini\\n"
-        report += "\\n".join(f"- {item}" for item in result["evidence"]) or "- No additional evidence supplied."
+        report += "\n## Evidence from Gemini\n"
+        report += "\n".join(f"- {item}" for item in result["evidence"]) or "- No additional evidence supplied."
         if result.get("run", {}).get("conclusion") != "success" and result["action"] != "no_action":
-            report += "\\n\\n## Required follow-up\\nThe dispatched business cycle did not complete successfully. Inspect the linked run before claiming business execution succeeded.\\n"
+            report += "\n\n## Required follow-up\nThe dispatched business cycle did not complete successfully. Inspect the linked run before claiming business execution succeeded.\n"
         else:
-            report += "\\n\\n## Integrity rule\\nA workflow run is not proof of a customer or paid order. Use verified acquisition and payment artifacts for business outcomes.\\n"
-        Path("api_agent_report.md").write_text(report + "\\n", encoding="utf-8")
+            report += "\n\n## Integrity rule\nA workflow run is not proof of a customer or paid order. Use verified acquisition and payment artifacts for business outcomes.\n"
+        Path("api_agent_report.md").write_text(report + "\n", encoding="utf-8")
         print(report)
         return 0 if result["action"] == "no_action" or result.get("run", {}).get("conclusion") == "success" else 1
     except urllib.error.HTTPError as exc:
