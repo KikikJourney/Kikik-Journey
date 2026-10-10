@@ -7,6 +7,11 @@ on:
       - "tools/api_agent.py"
       - "tests/test_api_agent.py"
       - ".github/workflows/api-agent.yml"
+  pull_request:
+    paths:
+      - "tools/api_agent.py"
+      - "tests/test_api_agent.py"
+      - ".github/workflows/api-agent.yml"
   workflow_dispatch:
     inputs:
       task:
@@ -37,6 +42,7 @@ jobs:
       - name: Test agent configuration
         run: python -m unittest discover -s tests -p "test_api_agent.py" -v
       - name: Run Gemini execution agent
+        if: ${{ github.event_name != 'pull_request' }}
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
