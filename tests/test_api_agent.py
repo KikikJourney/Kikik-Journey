@@ -39,5 +39,73 @@ class ApiAgentConfigTests(unittest.TestCase):
         self.assertEqual(mocked.call_count, 2)
 
 
+    def test_action_parser_accepts_only_allowlisted_json_action(self):
+        from tools.api_agent import parse_decision
+
+        decision = parse_decision(
+            '{"action":"run_full_business_cycle","reason":"No recent full cycle","evidence":["M1 stale"]}'
+        )
+        self.assertEqual(decision["action"], "run_full_business_cycle")
+
+    def test_action_parser_rejects_unknown_action(self):
+        from tools.api_agent import parse_decision
+
+        with self.assertRaises(ValueError):
+            parse_decision('{"action":"run_shell_command","reason":"bad","evidence":[]}')
+
+    def test_action_parser_rejects_non_json_model_output(self):
+        from tools.api_agent import parse_decision
+
+        with self.assertRaises(ValueError):
+            parse_decision("I recommend running the workflow.")
+
+    def test_workflow_dispatch_is_restricted_to_allowlist(self):
+        from tools.api_agent import dispatch_workflow
+
+        with self.assertRaises(ValueError):
+            dispatch_workflow("run_arbitrary_code", "token", "owner/repo")
+
+    def test_full_cycle_recency_guard_blocks_recent_success(self):
+        from tools.api_agent import action_allowed
+
+        self.assertFalse(action_allowed(
+            "run_full_business_cycle",
+            {"last_full_cycle_age_hours": 4},
+            manual=False,
+        ))
+
+    def test_full_cycle_recency_guard_allows_stale_cycle(self):
+        from tools.api_agent import action_allowed
+
+        self.assertTrue(action_allowed(
+            "run_full_business_cycle",
+            {"last_full_cycle_age_hours": 30},
+            manual=False,
+        ))
+
+    def test_manual_task_can_request_full_cycle(self):
+        from tools.api_agent import action_allowed
+
+        self.assertTrue(action_allowed(
+            "run_full_business_cycle",
+            {"last_full_cycle_age_hours": 4},
+            manual=True,
+        ))
+
+    def test_registered_action_dispatches_only_master_orchestrator(self):
+        from tools.api_agent import dispatch_workflow
+
+        with patch("tools.api_agent.github_request") as request:
+            workflow = dispatch_workflow(
+                "run_full_business_cycle", "token", "KikikJourney/Kikik-Journey"
+            )
+        self.assertEqual(workflow, "master-orchestrator.yml")
+        request.assert_called_once_with(
+            "/repos/KikikJourney/Kikik-Journey/actions/workflows/master-orchestrator.yml/dispatches",
+            "token",
+            method="POST",
+            payload={"ref": "main"},
+        )
+
 if __name__ == "__main__":
     unittest.main()

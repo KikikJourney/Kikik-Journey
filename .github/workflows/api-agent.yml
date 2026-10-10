@@ -7,17 +7,23 @@ on:
       - "tools/api_agent.py"
       - "tests/test_api_agent.py"
       - ".github/workflows/api-agent.yml"
+  pull_request:
+    paths:
+      - "tools/api_agent.py"
+      - "tests/test_api_agent.py"
+      - ".github/workflows/api-agent.yml"
   workflow_dispatch:
     inputs:
       task:
-        description: "Instruksi agent: audit funnel, akuisisi, validasi, atau laporan"
+        description: "Instruksi operasional untuk Gemini; default menilai apakah siklus bisnis M1–M4 perlu dijalankan"
         required: false
         type: string
-        default: "Audit repository terbaru. Temukan bottleneck akuisisi paling penting dan 3 tindakan terukur."
+        default: "Periksa bukti operasional terbaru dan jalankan siklus bisnis penuh jika memang diperlukan."
   schedule:
     - cron: "31 2 * * *"
 
 permissions:
+  actions: write
   contents: read
 
 concurrency:
@@ -27,7 +33,7 @@ concurrency:
 jobs:
   agent:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -35,10 +41,14 @@ jobs:
           python-version: "3.12"
       - name: Test agent configuration
         run: python -m unittest discover -s tests -p "test_api_agent.py" -v
-      - name: Run bounded Gemini agent
+      - name: Run Gemini execution agent
+        if: ${{ github.event_name != 'pull_request' }}
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
           AGENT_TASK: ${{ inputs.task }}
         run: python tools/api_agent.py
       - name: Upload agent report
