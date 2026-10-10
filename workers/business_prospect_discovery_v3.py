@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Business-buyer discovery from public request signals plus public business pages."""
+import base64
 import html
 import json
 import os
@@ -211,7 +212,7 @@ def read(url):
     return "", url
 
 
-def extract_search_links(body):
+def extract_search_links(body, base_url="https://www.google.com"):
     """Extract result links from Markdown readers and raw search-engine HTML."""
     links = re.findall(r'\[([^\]]+)\]\((https?://[^\s\)"]+)', body or "")
     # Raw Google results commonly wrap the destination in /url?q=... .
@@ -220,7 +221,7 @@ def extract_search_links(body):
         body or "", re.I | re.S,
     ):
         href = html.unescape(href.strip())
-        absolute = urljoin("https://www.google.com", href)
+        absolute = urljoin(base_url, href)
         parsed = urlparse(absolute)
         domain = parsed.netloc.lower().removeprefix("www.")
         if domain in {"google.com", "bing.com", "duckduckgo.com"}:
@@ -229,6 +230,18 @@ def extract_search_links(body):
                 (params[key][0] for key in ("q", "url", "uddg") if params.get(key)),
                 "",
             )
+            if domain == "bing.com" and params.get("u"):
+                token = params["u"][0]
+                if token.startswith("a1"):
+                    encoded = token[2:]
+                    try:
+                        decoded = base64.urlsafe_b64decode(
+                            encoded + "=" * (-len(encoded) % 4)
+                        ).decode("utf-8", "ignore")
+                        if decoded.startswith(("http://", "https://")):
+                            destination = decoded
+                    except (ValueError, base64.binascii.Error):
+                        pass
             if destination.startswith(("http://", "https://")):
                 absolute = unquote(destination)
         title = re.sub(r"<[^>]+>", " ", title_html)
@@ -271,7 +284,7 @@ def search(query):
             DIAGNOSTICS["search_targets_with_content"] += 1
         else:
             DIAGNOSTICS["search_targets_failed_or_empty"] += 1
-        links = extract_search_links(body)
+        links = extract_search_links(body, target)
         DIAGNOSTICS["links_seen"] += len(links)
         for title, url in links:
             clean_url = normalize_url(url)
