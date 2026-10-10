@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
 """Business-buyer discovery from public request signals plus public business pages."""
+import base64
 import html
 import json
 import os
 import re
 import time
-from urllib.parse import quote_plus, urljoin, urlparse
+from urllib.parse import parse_qs, quote_plus, unquote, urljoin, urlparse
 from urllib.request import Request, urlopen
 from urllib.error import HTTPError, URLError
 from http.client import InvalidURL
@@ -14,10 +15,12 @@ LIMIT = int(os.getenv("KJ_BUSINESS_DISCOVERY_LIMIT", "12"))
 SEARCH_TIMEOUT = int(os.getenv("KJ_DISCOVERY_TIMEOUT_SECONDS", "8"))
 UA = "KikikJourney-BusinessProspector/2.2"
 MAX_PER_DOMAIN = int(os.getenv("KJ_MAX_PROSPECTS_PER_DOMAIN", "4"))
-MAX_CANDIDATES_PER_QUERY = int(os.getenv("KJ_MAX_CANDIDATES_PER_QUERY", "24"))
+MAX_CANDIDATES_PER_QUERY = int(os.getenv("KJ_MAX_CANDIDATES_PER_QUERY", "8"))
 
 DIAGNOSTICS = {
     "queries_attempted": 0,
+    "pages_inspected": 0,
+    "inspection_budget_exhausted": False,
     "search_targets_attempted": 0,
     "search_targets_with_content": 0,
     "search_targets_failed_or_empty": 0,
@@ -38,32 +41,33 @@ DIAGNOSTICS = {
 }
 
 QUERIES = [
-    # Local business pain hypotheses; search public web sources, not only GitHub.
+    # Balanced discovery portfolio: Indonesian SMB pain, active buyer requests, and
+    # public business-web signals. These are hypotheses to test, not demand proof.
     '"UMKM" "pencatatan stok" manual WhatsApp usaha',
-    '"usaha kecil" "Google Sheets" pesanan otomatis',
-    '"toko online" "rekap pesanan" manual WhatsApp',
+    '"toko online" "rekap pesanan" manual WhatsApp Indonesia',
     '"UMKM" "pembukuan" "input data" otomatis',
+    '"usaha kecil" "Google Sheets" pesanan otomatis',
     'site:community.make.com/t/ "WhatsApp Cloud API" "Google Sheets" "Hire Help"',
     'site:community.make.com/t/ "Make freelancer needed for project" "happy to pay"',
-    'site:community.make.com/t/ "PDF invoice" "Google Sheets" "Gmail" "Make.com"',
-    'site:community.make.com/t/ "WordPress" "Brevo" "Make.com" "Hire Help"',
-    '"need help" automation "google sheets" ecommerce -github -fiverr -upwork',
-    '"looking for" automation "google sheets" business -github -fiverr',
-    '"need a developer" woocommerce automation -github -fiverr',
-    'site:community.make.com/t/ "I need help" "Google Sheets" automation',
     'site:community.n8n.io/t/ "help needed" automation WhatsApp',
     'site:community.zapier.com "looking to use" automation Sheets',
-    '"looking for" "whatsapp automation" business -github -fiverr',
-    '"help me automate" business workflow -github -fiverr',
-    'site:community.make.com/t/ "looking for" automation "Google Sheets"',
-    'site:community.n8n.io/t/ "looking for" automation workflow',
     'site:forum.pabbly.com "need assistance" automation "Google Sheets"',
-    '"need help" WooCommerce orders inventory "contact us" -plugin -agency -zapier -n8n',
-    '"looking for" WooCommerce automation store orders -plugin -agency -fiverr -upwork',
-    '"need someone" "Google Sheets" ecommerce "contact" -zapier -n8n -fiverr',
+    '"need help" automation "google sheets" ecommerce -github -fiverr -upwork',
+    '"mencari jasa" otomatisasi usaha UMKM pesanan stok Indonesia',
+    '"butuh bantuan" "Google Sheets" usaha otomatisasi Indonesia',
+    '"admin marketplace" "input data" manual toko online Indonesia',
+    '"rekap penjualan" manual Excel WhatsApp UMKM Indonesia',
+    '"need a developer" WooCommerce orders inventory automation -github -fiverr',
     '"looking for" workflow automation small business "contact us" -zapier -n8n',
+    '"looking for" automation "google sheets" business -github -fiverr',
+    '"request a quote" ecommerce order automation small business',
     '"need help" WhatsApp automation business "contact us" -agency -fiverr',
     '"manual" orders inventory WooCommerce "contact us" -plugin -agency',
+    '"need help" invoice generation spreadsheet automation small business',
+    '"salon" OR "clinic" appointment scheduling manual spreadsheet automation',
+    '"small business" "lead follow-up" spreadsheet automation request help',
+    '"looking to automate" business workflow integration "willing to pay"',
+    '"looking for a freelancer" business automation CRM spreadsheet',
 ]
 
 SEARCH_ENGINE_DOMAINS = ("google.com", "bing.com", "duckduckgo.com", "r.jina.ai")
@@ -208,6 +212,54 @@ def read(url):
     return "", url
 
 
+def extract_search_links(body, base_url="https://www.google.com"):
+    """Extract result links from Markdown readers and raw search-engine HTML."""
+    links = re.findall(r'\[([^\]]+)\]\((https?://[^\s\)"]+)', body or "")
+    # Raw Google results commonly wrap the destination in /url?q=... .
+    for href, title_html in re.findall(
+        r'<a\b[^>]*href=["\']([^"\']+)["\'][^>]*>(.*?)</a>',
+        body or "", re.I | re.S,
+    ):
+        href = html.unescape(href.strip())
+        absolute = urljoin(base_url, href)
+        parsed = urlparse(absolute)
+        domain = parsed.netloc.lower().removeprefix("www.")
+        if domain in {"google.com", "bing.com", "duckduckgo.com"}:
+            params = parse_qs(parsed.query)
+            destination = next(
+                (params[key][0] for key in ("q", "url", "uddg") if params.get(key)),
+                "",
+            )
+            if domain == "bing.com" and params.get("u"):
+                token = params["u"][0]
+                if token.startswith("a1"):
+                    encoded = token[2:]
+                    try:
+                        decoded = base64.urlsafe_b64decode(
+                            encoded + "=" * (-len(encoded) % 4)
+                        ).decode("utf-8", "ignore")
+                        if decoded.startswith(("http://", "https://")):
+                            destination = decoded
+                    except (ValueError, base64.binascii.Error):
+                        pass
+            if destination.startswith(("http://", "https://")):
+                absolute = unquote(destination)
+        title = re.sub(r"<[^>]+>", " ", title_html)
+        title = html.unescape(re.sub(r"\s+", " ", title)).strip()
+        if absolute.startswith(("http://", "https://")):
+            links.append((title or absolute, absolute))
+    # Keep a plain-URL fallback for text-only reader output.
+    links += [(u, u) for u in re.findall(r"https?://[^\s<>\]\)\"']+", body or "")]
+    deduped = []
+    seen = set()
+    for title, url in links:
+        key = normalize_url(url).lower()
+        if key and key not in seen:
+            seen.add(key)
+            deduped.append((title, url))
+    return deduped
+
+
 def search(query):
     found = []
     seen = set()
@@ -232,8 +284,7 @@ def search(query):
             DIAGNOSTICS["search_targets_with_content"] += 1
         else:
             DIAGNOSTICS["search_targets_failed_or_empty"] += 1
-        links = re.findall(r'\[([^\]]+)\]\((https?://[^\s\)"]+)', body)
-        links += [(u, u) for u in re.findall(r"https?://[^\s<>\]\)\"']+", body)]
+        links = extract_search_links(body, target)
         DIAGNOSTICS["links_seen"] += len(links)
         for title, url in links:
             clean_url = normalize_url(url)
@@ -415,6 +466,9 @@ def inspect(item, query):
 
 
 def main():
+    # Each invocation must report only its own diagnostics.
+    for key, value in list(DIAGNOSTICS.items()):
+        DIAGNOSTICS[key] = [] if isinstance(value, list) else (False if isinstance(value, bool) else 0)
     prospects = []
     seen_urls = set()
     # MAX_PER_DOMAIN limits accepted prospects, not pages inspected. Previously,
@@ -423,14 +477,22 @@ def main():
     domain_counts = {}
     inspected_domain_counts = {}
     max_inspections_per_domain = int(os.getenv("KJ_MAX_INSPECTIONS_PER_DOMAIN", "36"))
-    max_queries = int(os.getenv("KJ_MAX_DISCOVERY_QUERIES", "10"))
+    max_total_inspections = max(1, int(os.getenv("KJ_MAX_PAGES_TO_INSPECT", "24")))
+    total_inspections = 0
+    max_queries = max(1, min(len(QUERIES), int(os.getenv("KJ_MAX_DISCOVERY_QUERIES", "16"))))
     for query in QUERIES[:max_queries]:
+        if total_inspections >= max_total_inspections:
+            DIAGNOSTICS["inspection_budget_exhausted"] = True
+            break
         DIAGNOSTICS["queries_attempted"] += 1
         candidates = search(query)
         inspected = 0
         matched = 0
         skipped_duplicate_or_capped = 0
         for item in candidates:
+            if total_inspections >= max_total_inspections:
+                DIAGNOSTICS["inspection_budget_exhausted"] = True
+                break
             domain = urlparse(item["url"]).netloc.lower().removeprefix("www.")
             url_key = item["url"].rstrip("/").lower()
             if (
@@ -443,6 +505,8 @@ def main():
             seen_urls.add(url_key)
             inspected_domain_counts[domain] = inspected_domain_counts.get(domain, 0) + 1
             inspected += 1
+            total_inspections += 1
+            DIAGNOSTICS["pages_inspected"] += 1
             hit = inspect(item, query)
             if hit:
                 prospects.append(hit)
@@ -452,6 +516,7 @@ def main():
                 break
         DIAGNOSTICS["per_query"].append({
             "query": query,
+            "source_domains": sorted({urlparse(x.get("url", "")).netloc.lower().removeprefix("www.") for x in candidates if x.get("url")})[:8],
             "search_candidates": len(candidates),
             "unique_pages_inspected": inspected,
             "skipped_duplicate_or_domain_capped": skipped_duplicate_or_capped,
@@ -462,11 +527,12 @@ def main():
 
     payload = {
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "method": "Public business/request signals via Jina Reader plus public contact enrichment; strong pain-fit pages enter WATCH, and only explicit-intent pages can become actionable.",
+        "method": "Diversified public business/request discovery across Indonesian SMB pain, buyer-request forums, and independent business pages; results are evidence-gated and are not demand proof.",
         "count": len(prospects),
         "actionable_count": sum(bool(x.get("actionable")) for x in prospects[:LIMIT]),
         "direct_email_count": sum(bool(x.get("contact_email")) for x in prospects[:LIMIT]),
         "prospects": prospects[:LIMIT],
+        "source_domain_count": len({urlparse(x.get("website", "")).netloc.lower().removeprefix("www.") for x in prospects if x.get("website")}),
         "diagnostics": DIAGNOSTICS,
         "warning": "Public business signals are lead signals, not consent or sales. Outreach remains one-to-one, bounded and opt-out aware.",
     }

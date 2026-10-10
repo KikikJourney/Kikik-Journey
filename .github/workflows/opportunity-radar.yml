@@ -43,9 +43,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           KJ_BUSINESS_DISCOVERY_LIMIT: "8"
-          KJ_MAX_DISCOVERY_QUERIES: "10"
-          KJ_MAX_CANDIDATES_PER_QUERY: "12"
-          KJ_DISCOVERY_TIMEOUT_SECONDS: "6"
+          KJ_MAX_DISCOVERY_QUERIES: "16"
+          KJ_MAX_PAGES_TO_INSPECT: "24"
+          KJ_MAX_CANDIDATES_PER_QUERY: "8"
+          KJ_DISCOVERY_TIMEOUT_SECONDS: "4"
         run: python opportunity_radar.py
       - name: Package revenue experiments
         run: python opportunity_packager.py
@@ -89,6 +90,11 @@ jobs:
           path: |
             revenue_queue.json
             validation_cards.md
+      - name: Upload independent market research
+        uses: actions/upload-artifact@v4
+        with:
+          name: independent-market-demand-research
+          path: docs/opportunity-radar-market-research.md
       - name: Upload customer acquisition queue
         uses: actions/upload-artifact@v4
         with:

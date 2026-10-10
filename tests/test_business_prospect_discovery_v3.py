@@ -48,6 +48,51 @@ class BusinessProspectDiscoveryV3Tests(unittest.TestCase):
         self.assertIn("https://example.org/request-2", urls)
 
 
+    def test_www_search_engines_are_read_directly_not_wrapped_in_jina(self):
+        for url in (
+            "https://www.google.com/search?q=umkm",
+            "https://www.bing.com/search?q=umkm",
+        ):
+            with self.subTest(url=url), patch.object(
+                discovery, "get", return_value=("<html>results</html>", url)
+            ) as getter:
+                body, final = discovery.read(url)
+            self.assertEqual(body, "<html>results</html>")
+            self.assertEqual(final, url)
+            getter.assert_called_once_with(url)
+
+    def test_search_unwraps_google_redirects_to_actual_result_urls(self):
+        body = (
+            '<a href="/url?q=https%3A%2F%2Fshop.example%2Forders&sa=U">'
+            'Need help with orders</a>'
+        )
+        links = discovery.extract_search_links(body)
+        self.assertTrue(any(
+            title == "Need help with orders" and url == "https://shop.example/orders"
+            for title, url in links
+        ))
+
+    def test_search_unwraps_bing_base64_redirects(self):
+        import base64
+        destination = "https://store.example/inventory"
+        token = "a1" + base64.urlsafe_b64encode(destination.encode()).decode().rstrip("=")
+        body = f'<a href="https://www.bing.com/ck/a?u={token}">Inventory request</a>'
+        links = discovery.extract_search_links(body, "https://www.bing.com/search?q=inventory")
+        self.assertTrue(any(
+            title == "Inventory request" and url == destination
+            for title, url in links
+        ))
+
+    def test_query_bank_covers_indonesian_smb_and_multiple_external_sources(self):
+        query_text = " ".join(discovery.QUERIES).lower()
+        for expected in (
+            "umkm", "toko online", "community.make.com",
+            "community.n8n.io", "community.zapier.com", "forum.pabbly.com",
+            "woocommerce", "willing to pay",
+        ):
+            self.assertIn(expected, query_text)
+        self.assertGreaterEqual(len(discovery.QUERIES), 20)
+
     def test_first_ten_queries_include_indonesian_small_business_pain(self):
         first_pass = " ".join(discovery.QUERIES[:10]).lower()
         self.assertIn("umkm", first_pass)
@@ -83,11 +128,39 @@ class BusinessProspectDiscoveryV3Tests(unittest.TestCase):
                     discovery.main()
                 payload = json.loads(Path("business_prospects.json").read_text())
                 self.assertEqual(payload["count"], 0)
-                self.assertEqual(payload["diagnostics"]["queries_attempted"], 10)
-                self.assertEqual(len(payload["diagnostics"]["per_query"]), 10)
+                expected_queries = min(len(discovery.QUERIES), int(os.getenv("KJ_MAX_DISCOVERY_QUERIES", "16")))
+                self.assertEqual(payload["diagnostics"]["queries_attempted"], expected_queries)
+                self.assertEqual(len(payload["diagnostics"]["per_query"]), expected_queries)
             finally:
                 discovery.DIAGNOSTICS.update(old_diag)
                 os.chdir(old_cwd)
+
+    def test_global_page_inspection_budget_is_enforced(self):
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        from unittest.mock import patch
+        import json
+        import os
+
+        candidates = [
+            {"title": f"Request {i}", "url": f"https://example{i}.com/request"}
+            for i in range(5)
+        ]
+        with TemporaryDirectory() as tmp, patch.dict(os.environ, {
+            "KJ_MAX_DISCOVERY_QUERIES": "16",
+            "KJ_MAX_PAGES_TO_INSPECT": "2",
+        }), patch.object(discovery, "search", return_value=candidates), patch.object(
+            discovery, "inspect", return_value=None
+        ):
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(tmp)
+                discovery.main()
+                payload = json.loads(Path("business_prospects.json").read_text())
+            finally:
+                os.chdir(old_cwd)
+        self.assertEqual(payload["diagnostics"]["pages_inspected"], 2)
+        self.assertTrue(payload["diagnostics"]["inspection_budget_exhausted"])
 
     def test_relevant_pain_without_explicit_intent_is_watch_only(self):
         item = {"title": "Small business inventory and manual spreadsheet workflow", "url": "https://example.com/ops"}
