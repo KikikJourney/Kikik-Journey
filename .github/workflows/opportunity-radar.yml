@@ -10,6 +10,8 @@ on:
       - "workers/business_prospect_discovery_v3.py"
       - "workers/business_first_acquisition.py"
       - "workers/batch_prospect_worker.py"
+      - "workers/gemini_business_intelligence.py"
+      - "tests/test_gemini_business_intelligence.py"
       - "workers/prospect_worker.py"
       - "integrations/prospect_queue.json"
       - "integrations/prospect_queue.schema.json"
