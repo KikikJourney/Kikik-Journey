@@ -229,7 +229,7 @@ def find_dispatched_run(token, repository, workflow, not_before, attempts=30, po
             if not created:
                 continue
             timestamp = datetime.fromisoformat(created.replace("Z", "+00:00"))
-            if timestamp.timestamp() >= not_before and run.get("head_branch") == "main":
+            if timestamp.timestamp() >= not_before - 2 and run.get("head_branch") == "main":
                 candidates.append(run)
         if candidates:
             return max(candidates, key=lambda run: run["created_at"])
