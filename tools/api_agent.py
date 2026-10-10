@@ -3,11 +3,11 @@ import os
 import urllib.request
 from pathlib import Path
 
-MODEL = os.getenv('GEMINI_MODEL', 'gemini-3.5-flash-lite')
+MODEL = os.getenv('GEMINI_MODEL') or 'gemini-3.5-flash-lite'
 KEY = os.getenv('GEMINI_API_KEY', '')
 if not KEY:
     raise SystemExit('Missing GEMINI_API_KEY repository secret.')
-TASK = os.getenv('AGENT_TASK', 'Audit the acquisition funnel and identify three measurable next actions.')
+TASK = os.getenv('AGENT_TASK') or 'Audit the acquisition funnel and identify three measurable next actions.'
 FILES = ['README.md', 'opportunity_radar.py', 'workers/business_first_acquisition.py', 'workers/revenue_feedback.py', 'opportunity_report.json', 'business_first_report.json']
 context = []
 for name in FILES:
