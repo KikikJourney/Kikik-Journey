@@ -1,0 +1,43 @@
+name: Phone API Agent — Kikik Journey
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: "Instruksi agent: audit funnel, akuisisi, validasi, atau laporan"
+        required: false
+        type: string
+        default: "Audit repository terbaru. Temukan bottleneck akuisisi paling penting dan 3 tindakan terukur."
+  schedule:
+    - cron: "31 2 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phone-api-agent-kikik-journey
+  cancel-in-progress: false
+
+jobs:
+  agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Run bounded Gemini agent
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          AGENT_TASK: ${{ inputs.task }}
+        run: python tools/api_agent.py
+      - name: Upload agent report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kikik-journey-api-agent-report
+          path: api_agent_report.md
+          if-no-files-found: warn
+          retention-days: 14
