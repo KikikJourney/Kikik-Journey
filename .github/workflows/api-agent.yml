@@ -1,6 +1,12 @@
 name: Phone API Agent — Kikik Journey
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "tools/api_agent.py"
+      - "tests/test_api_agent.py"
+      - ".github/workflows/api-agent.yml"
   workflow_dispatch:
     inputs:
       task:
