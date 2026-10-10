@@ -9,6 +9,8 @@ on:
       - "workers/email_autopilot.py"
       - "workers/business_first_acquisition.py"
       - "workers/business_email_outreach.py"
+      - "workers/gemini_business_intelligence.py"
+      - "tests/test_gemini_business_intelligence.py"
       - "tests/test_revenue_feedback.py"
       - "tests/test_revenue_event_ledger.py"
       - "tests/test_email_autopilot.py"
