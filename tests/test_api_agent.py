@@ -92,6 +92,20 @@ class ApiAgentConfigTests(unittest.TestCase):
             manual=True,
         ))
 
+    def test_registered_action_dispatches_only_master_orchestrator(self):
+        from tools.api_agent import dispatch_workflow
+
+        with patch("tools.api_agent.github_request") as request:
+            workflow = dispatch_workflow(
+                "run_full_business_cycle", "token", "KikikJourney/Kikik-Journey"
+            )
+        self.assertEqual(workflow, "master-orchestrator.yml")
+        request.assert_called_once_with(
+            "/repos/KikikJourney/Kikik-Journey/actions/workflows/master-orchestrator.yml/dispatches",
+            "token",
+            method="POST",
+            payload={"ref": "main"},
+        )
 
 if __name__ == "__main__":
     unittest.main()
