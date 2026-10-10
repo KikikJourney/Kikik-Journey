@@ -38,8 +38,8 @@ class BusinessProspectDiscoveryV3Tests(unittest.TestCase):
 
     def test_search_strips_markdown_link_title_from_candidate_url(self):
         body = (
-            '[Example request](https://example.com/request-1 "Example request")\n'
-            'https://example.org/request-2'
+            '[Need help automating orders](https://example.com/orders/request-1 "Need help automating orders")\n'
+            'https://example.org/whatsapp-sheets/request-2'
         )
         with patch.object(discovery, "read", return_value=(body, "https://example.com")):
             results = discovery.search("test")
@@ -47,6 +47,54 @@ class BusinessProspectDiscoveryV3Tests(unittest.TestCase):
         self.assertIn("https://example.com/request-1", urls)
         self.assertIn("https://example.org/request-2", urls)
 
+
+    def test_search_result_relevance_rejects_support_and_vendor_noise(self):
+        self.assertFalse(discovery.is_relevant_candidate({
+            "title": "Manage your Google account",
+            "url": "https://support.google.com/accounts/example",
+        }))
+        self.assertFalse(discovery.is_relevant_candidate({
+            "title": "Canon product page",
+            "url": "https://in.canon.example/products/printer",
+        }))
+        self.assertTrue(discovery.is_relevant_candidate({
+            "title": "Need help automating WhatsApp orders",
+            "url": "https://example.com/business/orders",
+        }))
+
+    def test_round_robin_inspection_spreads_budget_across_queries(self):
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        import json
+        import os
+
+        query_results = [
+            [
+                {"title": f"Need help automating orders {q}-{i}",
+                 "url": f"https://q{q}-site{i}.example/orders/{q}-{i}"}
+                for i in range(3)
+            ]
+            for q in range(4)
+        ]
+        with TemporaryDirectory() as tmp, patch.dict(os.environ, {
+            "KJ_MAX_DISCOVERY_QUERIES": "4",
+            "KJ_MAX_PAGES_TO_INSPECT": "4",
+        }), patch.object(
+            discovery, "search", side_effect=query_results
+        ), patch.object(discovery, "inspect", return_value=None):
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(tmp)
+                discovery.main()
+                payload = json.loads(Path("business_prospects.json").read_text())
+            finally:
+                os.chdir(old_cwd)
+        self.assertEqual(payload["diagnostics"]["pages_inspected"], 4)
+        self.assertEqual(
+            [x["unique_pages_inspected"] for x in payload["diagnostics"]["per_query"]],
+            [1, 1, 1, 1],
+        )
+        self.assertTrue(payload["diagnostics"]["inspection_budget_exhausted"])
 
     def test_www_search_engines_are_read_directly_not_wrapped_in_jina(self):
         for url in (
