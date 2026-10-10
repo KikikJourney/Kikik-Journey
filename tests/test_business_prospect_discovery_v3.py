@@ -72,8 +72,8 @@ class BusinessProspectDiscoveryV3Tests(unittest.TestCase):
                     "links_seen": 0, "content_pages_read": 0, "content_pages_empty": 0,
                     "pages_rejected_no_buyer_evidence": 0, "reject_no_request_context": 0,
                     "reject_no_intent": 0, "reject_no_pain": 0, "reject_no_offer_fit": 0,
-                    "reject_no_business_context": 0, "pages_with_buyer_evidence": 0,
-                    "direct_business_emails_found": 0, "per_query": [],
+                    "reject_no_business_context": 0, "pages_with_buyer_evidence": 0, "pages_with_relevance_evidence": 0,
+                    "pages_watch_only": 0, "direct_business_emails_found": 0, "per_query": [],
                 })
                 with patch.object(discovery, "search", side_effect=[[{
                     "title": "Generic help", "url": "https://example.com/help"
@@ -88,6 +88,46 @@ class BusinessProspectDiscoveryV3Tests(unittest.TestCase):
             finally:
                 discovery.DIAGNOSTICS.update(old_diag)
                 os.chdir(old_cwd)
+
+    def test_relevant_pain_without_explicit_intent_is_watch_only(self):
+        item = {"title": "Small business inventory and manual spreadsheet workflow", "url": "https://example.com/ops"}
+        body = (
+            "Our business manages shop orders and inventory. The team manually copies "
+            "orders into Google Sheets and repeats data entry every day. This workflow "
+            "is slow and error-prone. Contact: ops@example.com"
+        )
+        with patch.object(discovery, "read", return_value=(body, item["url"])):
+            hit = discovery.inspect(item, "test query")
+        self.assertIsNotNone(hit)
+        self.assertEqual(hit["status"], "WATCH")
+        self.assertFalse(hit["actionable"])
+        self.assertEqual(hit["contact_email"], "ops@example.com")
+
+    def test_explicit_indonesian_intent_can_be_qualified(self):
+        item = {"title": "Butuh bantuan otomatisasi rekap pesanan", "url": "https://example.com/request"}
+        body = (
+            "Usaha kami mengelola toko dan pesanan. Kami butuh bantuan untuk "
+            "otomatisasi rekap pesanan ke Google Sheets karena input manual memakan waktu. "
+            "Contact: ops@example.com"
+        )
+        with patch.object(discovery, "read", return_value=(body, item["url"])):
+            hit = discovery.inspect(item, "test query")
+        self.assertIsNotNone(hit)
+        self.assertEqual(hit["status"], "QUALIFIED")
+        self.assertTrue(hit["actionable"])
+
+    def test_explicit_forum_buyer_request_without_business_keywords_is_retained(self):
+        item = {
+            "title": "I need help with a scenario to connect the WhatsApp Cloud API with Google Sheets",
+            "url": "https://example.com/request",
+        }
+        body = "I need help with a scenario to connect the WhatsApp Cloud API with Google Sheets."
+        with patch.object(discovery, "read", return_value=(body, item["url"])):
+            hit = discovery.inspect(item, "test query")
+        self.assertIsNotNone(hit)
+        self.assertEqual(hit["status"], "QUALIFIED")
+        self.assertFalse(hit["actionable"])
+        self.assertEqual(hit["reachability"], "unresolved")
 
     def test_rejected_pages_do_not_consume_domain_prospect_quota(self):
         from tempfile import TemporaryDirectory

@@ -31,6 +31,8 @@ DIAGNOSTICS = {
     "reject_no_offer_fit": 0,
     "reject_no_business_context": 0,
     "pages_with_buyer_evidence": 0,
+    "pages_with_relevance_evidence": 0,
+    "pages_watch_only": 0,
     "direct_business_emails_found": 0,
     "per_query": [],
 }
@@ -41,6 +43,10 @@ QUERIES = [
     '"usaha kecil" "Google Sheets" pesanan otomatis',
     '"toko online" "rekap pesanan" manual WhatsApp',
     '"UMKM" "pembukuan" "input data" otomatis',
+    'site:community.make.com/t/ "WhatsApp Cloud API" "Google Sheets" "Hire Help"',
+    'site:community.make.com/t/ "Make freelancer needed for project" "happy to pay"',
+    'site:community.make.com/t/ "PDF invoice" "Google Sheets" "Gmail" "Make.com"',
+    'site:community.make.com/t/ "WordPress" "Brevo" "Make.com" "Hire Help"',
     '"need help" automation "google sheets" ecommerce -github -fiverr -upwork',
     '"looking for" automation "google sheets" business -github -fiverr',
     '"need a developer" woocommerce automation -github -fiverr',
@@ -76,7 +82,7 @@ BUSINESS = (
     "our business", "my business", "our store", "my store", "ecommerce",
     "e-commerce", "customers", "orders", "inventory", "appointments",
     "bookings", "clients", "leads", "sales", "shop", "store", "agency",
-    "restaurant", "clinic", "company", "business",
+    "restaurant", "clinic", "company", "business", "usaha", "toko", "pesanan", "stok", "pelanggan", "penjualan", "pembukuan", "umkm",
 )
 PAIN = (
     "manual", "manually", "tedious", "time-consuming", "hours every",
@@ -96,6 +102,10 @@ INTENT = (
     "need this fixed", "seeking a freelancer", "seeking a contractor",
     "recommend a developer", "request a quote", "pay someone to",
     "willing to pay",
+    "butuh bantuan", "perlu bantuan", "mencari developer", "mencari freelancer",
+    "membutuhkan developer", "membutuhkan freelancer", "sedang mencari",
+    "tolong buat", "tolong bantu", "ada yang bisa", "ingin mengotomatisasi",
+    "ingin otomatisasi", "jasa otomatisasi", "minta bantuan", "mencari jasa",
 )
 
 GENERIC_TITLES = {
@@ -141,15 +151,15 @@ def is_candidate_page(item):
     return True
 OFFERS = {
     "WooCommerce → Google Sheets Automation": (
-        "woocommerce", "google sheets", "orders", "inventory", "stock",
+        "woocommerce", "google sheets", "orders", "inventory", "stock", "pesanan", "rekap pesanan", "pencatatan stok",
     ),
     "WhatsApp → Google Sheets Mini Automation": (
         "whatsapp", "google sheets", "message", "attendance", "expense",
-        "stock", "follow-up",
+        "stock", "follow-up", "pesanan", "rekap", "pencatatan",
     ),
     "Workflow Rescue Pilot": (
         "automation", "automate", "workflow", "manual", "integration",
-        "zapier", "make", "n8n",
+        "zapier", "make", "n8n", "otomatisasi", "input data", "pencatatan", "rekap",
     ),
 }
 
@@ -291,22 +301,20 @@ def is_business_email(email, site):
 
 def classify(item, body):
     title = (item.get("title") or "").lower()
-    context = (body + " " + title).lower()
-    # Search snippets and community rules often contain boilerplate phrases like
-    # "hire a pro" or "help others". Buyer intent must appear near the page
-    # opening or in its title, not merely somewhere in a long article.
-    buyer_context = (title + " " + (body or "")[:1200]).lower()
-    business_hits = sum(k in context for k in BUSINESS)
-    pain_hits = sum(k in context for k in PAIN)
-    intent_hits = sum(k in buyer_context for k in INTENT)
+    # Score only the original post's opening, not the entire thread. Replies can
+    # contain other people's sales pitches and must not manufacture buyer intent.
+    primary_context = (title + " " + (body or "")[:1800]).lower()
+    business_hits = sum(k in primary_context for k in BUSINESS)
+    pain_hits = sum(k in primary_context for k in PAIN)
+    intent_hits = sum(k in primary_context for k in INTENT)
     ranked = sorted(
-        (sum(k in context for k in keywords), name)
+        (sum(k in primary_context for k in keywords), name)
         for name, keywords in OFFERS.items()
     )
     offer_hits, offer = ranked[-1]
     windows = [
         part.strip().lower()
-        for part in re.split(r"[\n.!?]+", (body or "")[:1200] + " " + item.get("title", ""))
+        for part in re.split(r"[\n.!?]+", (body or "")[:1800] + " " + item.get("title", ""))
         if part.strip()
     ]
     request_context = any(
@@ -317,8 +325,7 @@ def classify(item, body):
         )
         for window in windows
     )
-    return context, business_hits, pain_hits, intent_hits, offer_hits, offer, request_context
-
+    return primary_context, business_hits, pain_hits, intent_hits, offer_hits, offer, request_context
 
 def inspect(item, query):
     if not is_candidate_page(item):
@@ -333,17 +340,25 @@ def inspect(item, query):
     rejection_reasons = {
         "reject_no_request_context": not request_context,
         "reject_no_intent": intent_hits < 1,
-        "reject_no_pain": pain_hits < 1,
+        "reject_no_pain": pain_hits < 2,
         "reject_no_offer_fit": offer_hits < 1,
         "reject_no_business_context": business_hits < 1,
     }
-    if any(rejection_reasons.values()):
+    # Keep strongly relevant pages in a WATCH queue even when explicit purchase
+    # intent is absent. WATCH records must never enter autonomous outreach.
+    relevance_gate = (business_hits >= 1 and pain_hits >= 2 and offer_hits >= 1) or (intent_hits >= 1 and request_context and pain_hits >= 1 and offer_hits >= 1)
+    if not relevance_gate:
         DIAGNOSTICS["pages_rejected_no_buyer_evidence"] += 1
         for key, rejected in rejection_reasons.items():
             if rejected:
                 DIAGNOSTICS[key] += 1
         return None
-    DIAGNOSTICS["pages_with_buyer_evidence"] += 1
+    DIAGNOSTICS["pages_with_relevance_evidence"] += 1
+    qualified = intent_hits >= 1 and request_context
+    if qualified:
+        DIAGNOSTICS["pages_with_buyer_evidence"] += 1
+    else:
+        DIAGNOSTICS["pages_watch_only"] += 1
 
     found = [e for e in emails(body) if is_business_email(e, final)]
     contact_url = ""
@@ -388,11 +403,12 @@ def inspect(item, query):
         "reachability": "direct_email" if found else (
             "contact_form_or_contact_page" if contact_url else "unresolved"
         ),
-        "actionable": bool(found) and intent_hits >= 1 and pain_hits >= 1 and offer_hits >= 1,
+        "status": "QUALIFIED" if qualified else "WATCH",
+        "actionable": bool(found) and qualified and pain_hits >= 2 and offer_hits >= 1,
         "actionability_reason": (
             "direct public business email + explicit intent + pain + offer fit"
-            if found and intent_hits >= 1 and pain_hits >= 1 and offer_hits >= 1
-            else "missing direct email or explicit intent/pain/offer evidence"
+            if found and qualified and pain_hits >= 2 and offer_hits >= 1
+            else "watch-only or missing direct email / explicit intent / pain / offer evidence"
         ),
         "discovery_query": query,
     }
@@ -406,7 +422,7 @@ def main():
     # from the same community or business site.
     domain_counts = {}
     inspected_domain_counts = {}
-    max_inspections_per_domain = int(os.getenv("KJ_MAX_INSPECTIONS_PER_DOMAIN", "12"))
+    max_inspections_per_domain = int(os.getenv("KJ_MAX_INSPECTIONS_PER_DOMAIN", "36"))
     max_queries = int(os.getenv("KJ_MAX_DISCOVERY_QUERIES", "10"))
     for query in QUERIES[:max_queries]:
         DIAGNOSTICS["queries_attempted"] += 1
@@ -446,7 +462,7 @@ def main():
 
     payload = {
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "method": "Public buyer/request signals via Jina Reader plus public business contact enrichment; no credentials.",
+        "method": "Public business/request signals via Jina Reader plus public contact enrichment; strong pain-fit pages enter WATCH, and only explicit-intent pages can become actionable.",
         "count": len(prospects),
         "actionable_count": sum(bool(x.get("actionable")) for x in prospects[:LIMIT]),
         "direct_email_count": sum(bool(x.get("contact_email")) for x in prospects[:LIMIT]),

@@ -85,6 +85,29 @@ def github_issue(title,body):
     req=urllib.request.Request("https://api.github.com/repos/"+GITHUB_REPO+"/issues",data=json.dumps({"title":title,"body":body}).encode(),headers={"Accept":"application/vnd.github+json","Authorization":"Bearer "+GITHUB_TOKEN,"X-GitHub-Api-Version":"2022-11-28","Content-Type":"application/json"},method="POST")
     with urllib.request.urlopen(req,timeout=30) as r:return json.loads(r.read().decode())
 
+def github_find_tx(tx_hash_value):
+    """Find an already-recorded transaction so one transfer cannot pay two orders."""
+    if not GITHUB_TOKEN:
+        return None
+    normalized = tx_hash_value.lower()
+    q = urllib.parse.quote(f'repo:{GITHUB_REPO} is:issue "{normalized}"')
+    req = urllib.request.Request(
+        "https://api.github.com/search/issues?q=" + q,
+        headers={
+            "Accept": "application/vnd.github+json",
+            "Authorization": "Bearer " + GITHUB_TOKEN,
+            "X-GitHub-Api-Version": "2022-11-28",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=30) as r:
+        items = json.loads(r.read().decode()).get("items", [])
+    for item in items:
+        text = (item.get("title") or "") + "\n" + (item.get("body") or "")
+        if normalized in text.lower():
+            return item
+    return None
+
+
 def github_find(ref_value):
     if not GITHUB_TOKEN:return None
     q=urllib.parse.quote(f"repo:{GITHUB_REPO} is:issue {ref_value}")
@@ -139,6 +162,15 @@ def process_payment(mid,text,order=None):
     if not order:return {"status":"manual_order_not_found","ref":p_ref}
     h=tx_hash(text); amount=OFFERS[order["offer"]][1]
     if not h:return {"status":"payment_missing_tx","ref":p_ref}
+    # Prevent replaying one confirmed transfer against a second order reference.
+    # The paid-order ledger is the idempotency source; a matching current order
+    # may be retried, but a different order may not reuse its transaction hash.
+    prior_tx = github_find_tx(h)
+    if prior_tx:
+        prior_text = (prior_tx.get("title") or "") + "\n" + (prior_tx.get("body") or "")
+        prior_ref = ref(prior_text)
+        if prior_ref != p_ref:
+            return {"status":"payment_rejected","ref":p_ref,"verification":{"ok":False,"status":"transaction_already_used","tx_hash":h,"existing_order_ref":prior_ref or "unknown"}}
     result=verify_payment(h,amount,PAYMENT_RECIPIENT)
     if not result.get("ok"):
         status=result.get("status")
