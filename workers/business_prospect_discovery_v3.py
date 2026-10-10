@@ -76,6 +76,11 @@ BLOCKED = (
     "instagram.com", "x.com", "twitter.com", "youtube.com",
     "tiktok.com", "upwork.com", "fiverr.com", "freelancer.com",
     "indeed.com", "glassdoor.com", "quora.com",
+    # Large support/vendor/reference portals repeatedly crowd out SMB buyer signals.
+    "support.google.com", "support.microsoft.com", "account.microsoft.com",
+    "outlook.office.com", "go.microsoft.com", "microsoft.com",
+    "wikipedia.org", "canon.com", "backcountry.com", "skiwax.ca",
+    "toko.ch", "tokous.com",
 )
 WEBMAIL = (
     "gmail.com", "googlemail.com", "yahoo.com", "outlook.com",
@@ -121,7 +126,29 @@ GENERIC_TITLES = {
 GENERIC_PATH_PARTS = (
     "/login", "/ssoproxy/", "/search", "/categories", "/category/",
     "/tags/", "/tag/", "/latest", "/popular", "/contact-us", "/contact",
+    "/support/", "/help/", "/docs/", "/documentation/", "/knowledge-base",
+    "/faq", "/careers/", "/jobs/",
 )
+
+
+SEARCH_RESULT_TERMS = (
+    "umkm", "pencatatan", "stok", "inventory", "stock", "whatsapp",
+    "pesanan", "rekap", "pembukuan", "penjualan", "ecommerce", "e-commerce",
+    "woocommerce", "google sheets", "automation", "automate", "workflow",
+    "integration", "invoice", "appointment", "booking", "lead", "spreadsheet",
+    "manual", "data entry", "orders", "order", "crm", "zapier", "n8n",
+    "pabbly", "make.com", "make community",
+)
+
+
+def is_relevant_candidate(item):
+    """Reject search-result noise before spending a page-inspection slot."""
+    url = normalize_url(item.get("url"))
+    text = " ".join((
+        item.get("title") or "",
+        urlparse(url).path if url else "",
+    )).lower().replace("-", " ").replace("_", " ")
+    return any(term in text for term in SEARCH_RESULT_TERMS)
 
 
 def is_candidate_page(item):
@@ -322,7 +349,7 @@ def search(query):
             parsed_url = urlparse(clean_url)
             canonical = parsed_url._replace(query="", fragment="").geturl().rstrip("/")
             candidate = {"title": html.unescape(title), "url": canonical}
-            if not is_candidate_page(candidate):
+            if not is_candidate_page(candidate) or not is_relevant_candidate(candidate):
                 continue
             if canonical.lower() in seen:
                 continue
@@ -469,61 +496,86 @@ def main():
     # Each invocation must report only its own diagnostics.
     for key, value in list(DIAGNOSTICS.items()):
         DIAGNOSTICS[key] = [] if isinstance(value, list) else (False if isinstance(value, bool) else 0)
+
     prospects = []
     seen_urls = set()
-    # MAX_PER_DOMAIN limits accepted prospects, not pages inspected. Previously,
-    # rejected pages consumed the domain quota and could hide later valid requests
-    # from the same community or business site.
     domain_counts = {}
     inspected_domain_counts = {}
     max_inspections_per_domain = int(os.getenv("KJ_MAX_INSPECTIONS_PER_DOMAIN", "36"))
     max_total_inspections = max(1, int(os.getenv("KJ_MAX_PAGES_TO_INSPECT", "24")))
-    total_inspections = 0
     max_queries = max(1, min(len(QUERIES), int(os.getenv("KJ_MAX_DISCOVERY_QUERIES", "16"))))
+
+    # Search every selected query first, then inspect candidates round-robin.
+    # This prevents the first noisy query from consuming the entire page budget.
+    query_runs = []
     for query in QUERIES[:max_queries]:
-        if total_inspections >= max_total_inspections:
-            DIAGNOSTICS["inspection_budget_exhausted"] = True
-            break
         DIAGNOSTICS["queries_attempted"] += 1
         candidates = search(query)
-        inspected = 0
-        matched = 0
-        skipped_duplicate_or_capped = 0
-        for item in candidates:
-            if total_inspections >= max_total_inspections:
-                DIAGNOSTICS["inspection_budget_exhausted"] = True
-                break
-            domain = urlparse(item["url"]).netloc.lower().removeprefix("www.")
-            url_key = item["url"].rstrip("/").lower()
-            if (
-                url_key in seen_urls
-                or domain_counts.get(domain, 0) >= MAX_PER_DOMAIN
-                or inspected_domain_counts.get(domain, 0) >= max_inspections_per_domain
-            ):
-                skipped_duplicate_or_capped += 1
-                continue
-            seen_urls.add(url_key)
-            inspected_domain_counts[domain] = inspected_domain_counts.get(domain, 0) + 1
-            inspected += 1
-            total_inspections += 1
-            DIAGNOSTICS["pages_inspected"] += 1
-            hit = inspect(item, query)
-            if hit:
-                prospects.append(hit)
-                domain_counts[domain] = domain_counts.get(domain, 0) + 1
-                matched += 1
-            if len(prospects) >= LIMIT:
-                break
-        DIAGNOSTICS["per_query"].append({
+        query_runs.append({
             "query": query,
-            "source_domains": sorted({urlparse(x.get("url", "")).netloc.lower().removeprefix("www.") for x in candidates if x.get("url")})[:8],
-            "search_candidates": len(candidates),
-            "unique_pages_inspected": inspected,
-            "skipped_duplicate_or_domain_capped": skipped_duplicate_or_capped,
-            "matching_prospects": matched,
+            "candidates": candidates,
+            "next_index": 0,
+            "inspected": 0,
+            "matched": 0,
+            "skipped": 0,
         })
-        if len(prospects) >= LIMIT:
+
+    total_inspections = 0
+    while total_inspections < max_total_inspections and len(prospects) < LIMIT:
+        made_progress = False
+        for run in query_runs:
+            if total_inspections >= max_total_inspections or len(prospects) >= LIMIT:
+                break
+            candidates = run["candidates"]
+            # Inspect at most one page per query per round.
+            while run["next_index"] < len(candidates):
+                item = candidates[run["next_index"]]
+                run["next_index"] += 1
+                domain = urlparse(item["url"]).netloc.lower().removeprefix("www.")
+                url_key = item["url"].rstrip("/").lower()
+                if (
+                    url_key in seen_urls
+                    or domain_counts.get(domain, 0) >= MAX_PER_DOMAIN
+                    or inspected_domain_counts.get(domain, 0) >= max_inspections_per_domain
+                ):
+                    run["skipped"] += 1
+                    continue
+
+                seen_urls.add(url_key)
+                inspected_domain_counts[domain] = inspected_domain_counts.get(domain, 0) + 1
+                run["inspected"] += 1
+                total_inspections += 1
+                DIAGNOSTICS["pages_inspected"] += 1
+                made_progress = True
+                hit = inspect(item, run["query"])
+                if hit:
+                    prospects.append(hit)
+                    domain_counts[domain] = domain_counts.get(domain, 0) + 1
+                    run["matched"] += 1
+                break
+
+        if not made_progress:
             break
+
+    remaining_candidates = any(
+        run["next_index"] < len(run["candidates"]) for run in query_runs
+    )
+    if total_inspections >= max_total_inspections and remaining_candidates and len(prospects) < LIMIT:
+        DIAGNOSTICS["inspection_budget_exhausted"] = True
+
+    for run in query_runs:
+        candidates = run["candidates"]
+        DIAGNOSTICS["per_query"].append({
+            "query": run["query"],
+            "source_domains": sorted({
+                urlparse(x.get("url", "")).netloc.lower().removeprefix("www.")
+                for x in candidates if x.get("url")
+            })[:8],
+            "search_candidates": len(candidates),
+            "unique_pages_inspected": run["inspected"],
+            "skipped_duplicate_or_domain_capped": run["skipped"],
+            "matching_prospects": run["matched"],
+        })
 
     payload = {
         "generated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
@@ -532,7 +584,10 @@ def main():
         "actionable_count": sum(bool(x.get("actionable")) for x in prospects[:LIMIT]),
         "direct_email_count": sum(bool(x.get("contact_email")) for x in prospects[:LIMIT]),
         "prospects": prospects[:LIMIT],
-        "source_domain_count": len({urlparse(x.get("website", "")).netloc.lower().removeprefix("www.") for x in prospects if x.get("website")}),
+        "source_domain_count": len({
+            urlparse(x.get("website", "")).netloc.lower().removeprefix("www.")
+            for x in prospects if x.get("website")
+        }),
         "diagnostics": DIAGNOSTICS,
         "warning": "Public business signals are lead signals, not consent or sales. Outreach remains one-to-one, bounded and opt-out aware.",
     }
