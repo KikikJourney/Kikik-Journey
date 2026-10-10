@@ -1,0 +1,11 @@
+name: Phone API Agent
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: echo 'Agent workflow scaffold; API integration pending.'
