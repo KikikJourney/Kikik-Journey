@@ -2,6 +2,7 @@ import json
 import os
 import urllib.error
 import urllib.request
+import time
 from pathlib import Path
 
 DEFAULT_MODEL = "gemini-3.5-flash-lite"
@@ -53,6 +54,22 @@ def build_prompt(task, root="."):
     )
 
 
+def open_with_retry(request, timeout=90, attempts=3):
+    """Retry transient Gemini API failures without retrying permanent client errors."""
+    transient = {429, 500, 502, 503, 504}
+    for attempt in range(attempts):
+        try:
+            return urllib.request.urlopen(request, timeout=timeout)
+        except urllib.error.HTTPError as exc:
+            if exc.code not in transient or attempt == attempts - 1:
+                raise
+            time.sleep(2 ** attempt)
+        except urllib.error.URLError:
+            if attempt == attempts - 1:
+                raise
+            time.sleep(2 ** attempt)
+
+
 def request_report(api_key, model, prompt):
     payload = json.dumps({
         "contents": [{"parts": [{"text": prompt}]}],
@@ -67,7 +84,7 @@ def request_report(api_key, model, prompt):
         },
         method="POST",
     )
-    with urllib.request.urlopen(request, timeout=90) as response:
+    with open_with_retry(request, timeout=90) as response:
         result = json.loads(response.read().decode("utf-8"))
     answer = "\\n".join(
         part.get("text", "")
