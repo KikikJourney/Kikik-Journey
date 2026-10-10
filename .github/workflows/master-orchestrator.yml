@@ -1,5 +1,5 @@
-name: Zorathvael OS — Master Orchestrator
-run-name: "Zorathvael OS — M1 → M2 → M3 → M4 #${{ github.run_number }}"
+name: Kikik Journey — Business Orchestrator
+run-name: "Kikik Journey — M1 → M2 → M3 → M4 #${{ github.run_number }}"
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: zorathvael-os-master-${{ github.ref }}
+  group: kikik-journey-business-master-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -97,7 +97,7 @@ jobs:
       - name: Final summary
         if: always()
         run: |
-          echo "Zorathvael OS orchestration finished."
+          echo "Kikik Journey business orchestration finished."
           echo "M1 run: ${{ steps.m1.outputs.run_id }}"
           echo "M2 run: ${{ steps.m2.outputs.run_id }}"
           echo "M3 run: ${{ steps.m3.outputs.run_id }}"
