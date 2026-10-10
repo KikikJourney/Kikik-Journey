@@ -72,6 +72,17 @@ class BusinessProspectDiscoveryV3Tests(unittest.TestCase):
             for title, url in links
         ))
 
+    def test_search_unwraps_bing_base64_redirects(self):
+        import base64
+        destination = "https://store.example/inventory"
+        token = "a1" + base64.urlsafe_b64encode(destination.encode()).decode().rstrip("=")
+        body = f'<a href="https://www.bing.com/ck/a?u={token}">Inventory request</a>'
+        links = discovery.extract_search_links(body, "https://www.bing.com/search?q=inventory")
+        self.assertTrue(any(
+            title == "Inventory request" and url == destination
+            for title, url in links
+        ))
+
     def test_query_bank_covers_indonesian_smb_and_multiple_external_sources(self):
         query_text = " ".join(discovery.QUERIES).lower()
         for expected in (
