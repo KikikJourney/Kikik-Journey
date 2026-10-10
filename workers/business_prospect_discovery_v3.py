@@ -14,10 +14,12 @@ LIMIT = int(os.getenv("KJ_BUSINESS_DISCOVERY_LIMIT", "12"))
 SEARCH_TIMEOUT = int(os.getenv("KJ_DISCOVERY_TIMEOUT_SECONDS", "8"))
 UA = "KikikJourney-BusinessProspector/2.2"
 MAX_PER_DOMAIN = int(os.getenv("KJ_MAX_PROSPECTS_PER_DOMAIN", "4"))
-MAX_CANDIDATES_PER_QUERY = int(os.getenv("KJ_MAX_CANDIDATES_PER_QUERY", "24"))
+MAX_CANDIDATES_PER_QUERY = int(os.getenv("KJ_MAX_CANDIDATES_PER_QUERY", "8"))
 
 DIAGNOSTICS = {
     "queries_attempted": 0,
+    "pages_inspected": 0,
+    "inspection_budget_exhausted": False,
     "search_targets_attempted": 0,
     "search_targets_with_content": 0,
     "search_targets_failed_or_empty": 0,
@@ -451,6 +453,9 @@ def inspect(item, query):
 
 
 def main():
+    # Each invocation must report only its own diagnostics.
+    for key, value in list(DIAGNOSTICS.items()):
+        DIAGNOSTICS[key] = [] if isinstance(value, list) else (False if isinstance(value, bool) else 0)
     prospects = []
     seen_urls = set()
     # MAX_PER_DOMAIN limits accepted prospects, not pages inspected. Previously,
@@ -459,14 +464,22 @@ def main():
     domain_counts = {}
     inspected_domain_counts = {}
     max_inspections_per_domain = int(os.getenv("KJ_MAX_INSPECTIONS_PER_DOMAIN", "36"))
+    max_total_inspections = max(1, int(os.getenv("KJ_MAX_PAGES_TO_INSPECT", "24")))
+    total_inspections = 0
     max_queries = max(1, min(len(QUERIES), int(os.getenv("KJ_MAX_DISCOVERY_QUERIES", "16"))))
     for query in QUERIES[:max_queries]:
+        if total_inspections >= max_total_inspections:
+            DIAGNOSTICS["inspection_budget_exhausted"] = True
+            break
         DIAGNOSTICS["queries_attempted"] += 1
         candidates = search(query)
         inspected = 0
         matched = 0
         skipped_duplicate_or_capped = 0
         for item in candidates:
+            if total_inspections >= max_total_inspections:
+                DIAGNOSTICS["inspection_budget_exhausted"] = True
+                break
             domain = urlparse(item["url"]).netloc.lower().removeprefix("www.")
             url_key = item["url"].rstrip("/").lower()
             if (
@@ -479,6 +492,8 @@ def main():
             seen_urls.add(url_key)
             inspected_domain_counts[domain] = inspected_domain_counts.get(domain, 0) + 1
             inspected += 1
+            total_inspections += 1
+            DIAGNOSTICS["pages_inspected"] += 1
             hit = inspect(item, query)
             if hit:
                 prospects.append(hit)
