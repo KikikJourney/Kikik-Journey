@@ -43,7 +43,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           KJ_BUSINESS_DISCOVERY_LIMIT: "8"
-          KJ_MAX_DISCOVERY_QUERIES: "10"
+          KJ_MAX_DISCOVERY_QUERIES: "16"
           KJ_MAX_CANDIDATES_PER_QUERY: "12"
           KJ_DISCOVERY_TIMEOUT_SECONDS: "6"
         run: python opportunity_radar.py
