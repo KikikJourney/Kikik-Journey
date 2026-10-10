@@ -12,6 +12,8 @@ on:
       - "workers/business_email_outreach.py"
       - "workers/github_opportunity_outreach.py"
       - "workers/revenue_feedback.py"
+      - "workers/gemini_business_intelligence.py"
+      - "tests/test_gemini_business_intelligence.py"
   workflow_dispatch:
     inputs:
       m1_run_id:
