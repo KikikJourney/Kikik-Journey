@@ -124,6 +124,33 @@ class BusinessProspectDiscoveryV3Tests(unittest.TestCase):
                 discovery.DIAGNOSTICS.update(old_diag)
                 os.chdir(old_cwd)
 
+    def test_global_page_inspection_budget_is_enforced(self):
+        from tempfile import TemporaryDirectory
+        from pathlib import Path
+        from unittest.mock import patch
+        import json
+        import os
+
+        candidates = [
+            {"title": f"Request {i}", "url": f"https://example{i}.com/request"}
+            for i in range(5)
+        ]
+        with TemporaryDirectory() as tmp, patch.dict(os.environ, {
+            "KJ_MAX_DISCOVERY_QUERIES": "16",
+            "KJ_MAX_PAGES_TO_INSPECT": "2",
+        }), patch.object(discovery, "search", return_value=candidates), patch.object(
+            discovery, "inspect", return_value=None
+        ):
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(tmp)
+                discovery.main()
+                payload = json.loads(Path("business_prospects.json").read_text())
+            finally:
+                os.chdir(old_cwd)
+        self.assertEqual(payload["diagnostics"]["pages_inspected"], 2)
+        self.assertTrue(payload["diagnostics"]["inspection_budget_exhausted"])
+
     def test_relevant_pain_without_explicit_intent_is_watch_only(self):
         item = {"title": "Small business inventory and manual spreadsheet workflow", "url": "https://example.com/ops"}
         body = (
