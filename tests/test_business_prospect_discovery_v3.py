@@ -45,7 +45,7 @@ class BusinessProspectDiscoveryV3Tests(unittest.TestCase):
             results = discovery.search("test")
         urls = {item["url"] for item in results}
         self.assertIn("https://example.com/orders/request-1", urls)
-        self.assertIn("https://example.org/request-2", urls)
+        self.assertIn("https://example.org/whatsapp-sheets/request-2", urls)
 
 
     def test_search_result_relevance_rejects_support_and_vendor_noise(self):
