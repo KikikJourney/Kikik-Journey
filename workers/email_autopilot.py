@@ -70,12 +70,51 @@ def sender(value):
     m = re.search(r"<([^>]+)>", value or "")
     return (m.group(1) if m else (value or "")).strip().lower()
 
+def is_support_notification(text):
+    """Recognize ticket-system/support replies so quoted sales terms cannot create orders."""
+    t = (text or "").lower()
+    markers = (
+        "ticket resolved",
+        "your ticket number",
+        "ticket number is",
+        "official bug bounty platform",
+        "official bug bounty platform dashboard",
+        "regarding your report on potential vulnerabilities",
+        "we apologize for the inconvenience",
+        "your ticket is resolved",
+    )
+    return any(marker in t for marker in markers)
+
 def classify(text):
     t = (text or "").lower()
-    if any(x in t for x in ("paid","payment","transfer","tx hash","transaction","sent usdt")): return "payment"
-    if any(x in t for x in ("price","pricing","cost","how much","quote")): return "pricing"
-    if any(x in t for x in ("interested","let's do it","lets do it","start","proceed","buy")): return "purchase_intent"
-    if any(x in t for x in ("woocommerce","google sheets","whatsapp","automation","workflow")): return "offer_interest"
+    # A support ticket can quote checkout links or earlier sales emails. Never
+    # treat those quoted words as purchase/payment intent.
+    if is_support_notification(text):
+        return "general"
+    if re.search(r"\b0x[a-f0-9]{64}\b", t) or any(x in t for x in (
+        "i paid", "i've paid", "i have paid", "payment sent", "i sent usdt",
+        "sent usdt", "transaction hash", "tx hash", "here is my tx",
+    )):
+        return "payment"
+    if any(x in t for x in ("price", "pricing", "cost", "how much", "quote")):
+        return "pricing"
+    if any(x in t for x in (
+        "interested", "let's do it", "lets do it", "i want to buy",
+        "i'd like to purchase", "i would like to purchase",
+        "please proceed with order", "i want to start", "want to start",
+        "ready to buy", "please start the project",
+    )):
+        return "purchase_intent"
+    explicit_need = any(x in t for x in (
+        "i need ", "i'm looking for", "im looking for", "i am looking for",
+        "can you build", "can you automate", "i'd like", "i would like",
+        "please help me set up", "looking to automate",
+    ))
+    has_offer = any(x in t for x in (
+        "woocommerce", "google sheets", "whatsapp", "automation", "workflow",
+    ))
+    if explicit_need and has_offer:
+        return "offer_interest"
     return "general"
 
 def reply(inbox,message_id,body):
@@ -175,6 +214,10 @@ def process(inbox,state,message):
     if "kj-processed" in set(message.get("labels", [])): return "already_processed"
     detail=api("/inboxes/"+urllib.parse.quote(inbox,safe="")+"/messages/"+urllib.parse.quote(mid,safe=""))
     text="\n".join(str(detail.get(k,"")) for k in ("subject","extracted_text","text"))
+    if is_support_notification(text):
+        label(inbox,mid,["kj-processed","kj-support-notification"])
+        state["processed"][mid]={"status":"ignored_support_notification","at":datetime.now(timezone.utc).isoformat()}
+        return "ignored_support_notification"
     kind=classify(text)
     to=sender(detail.get("from"))
     detected_offer = detect_offer(text)
