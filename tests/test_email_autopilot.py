@@ -1,5 +1,5 @@
 import unittest
-from workers.email_autopilot import classify, detect_offer, payment_amount, explicit_order_ref, tx_hash
+from workers.email_autopilot import classify, detect_offer, payment_amount, explicit_order_ref, tx_hash, is_support_notification
 
 class EmailAutopilotTests(unittest.TestCase):
     def test_payment(self): self.assertEqual(classify("I sent USDT, transaction hash 0xabc"), "payment")
@@ -27,6 +27,7 @@ class EmailAutopilotTests(unittest.TestCase):
             "Checkout: https://kikikjourney.github.io/Kikik-Journey/sales/checkout.html"
         )
         self.assertEqual(classify(text), "general")
+        self.assertTrue(is_support_notification(text))
 
     def test_generic_payment_word_is_not_payment_proof(self):
         self.assertEqual(classify("Your ticket is resolved. Please use the official platform for bug reports and payment status updates."), "general")
