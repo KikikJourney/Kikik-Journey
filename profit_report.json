@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-30T08:56:55.168981+00:00",
+  "generated_at": "2026-10-30T12:45:28.601069+00:00",
   "totals": {
     "events": 9,
     "contacted": 9,
@@ -63,7 +63,7 @@
   },
   "policy": {
     "version": 1,
-    "generated_at": "2026-10-30T08:56:55.168981+00:00",
+    "generated_at": "2026-10-30T12:45:28.601069+00:00",
     "principle": "Outcome data changes prioritization; it never bypasses buyer-intent, compliance, Qwen, deduplication, or outreach caps.",
     "offer_multipliers": {
       "Workflow Rescue Pilot": 1.0
